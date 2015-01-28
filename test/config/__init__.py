@@ -4,9 +4,7 @@
     ~~~~~~~~~~~
 
     :copyright: 2015 by `University of Denver <http://pardee.du.edu/>`_
-    :license: Creative Commons 4.0 License (`CC BY-NC-SA 4.0`_).
-
-    .. _`CC BY-NC-SA 4.0`: http://creativecommons.org/licenses/by-nc-sa/4.0/
+    :license: Apache 2.0, see LICENSE for more details.
 
     :author: `LIU Yu <liuyu@opencps.net>`_
     :date: 2015/01/19
@@ -14,7 +12,7 @@
 
 from __future__ import unicode_literals
 
-__all__ = [b'to_native', ]
+__all__ = [b'to_native', b'get_credentials', ]
 
 
 import atexit
@@ -65,6 +63,16 @@ try:
 except ImportError:
     # python 2.7+
     import unittest
+
+
+def get_credentials(user_input=True, prompt="DataGator credentials: "):
+    """
+    Gets api credentials from environment variables, and optionally from user.
+    """
+    credentials = os.environ.get('DATAGATOR_CREDENTIALS', None) or \
+        (user_input and raw_input(prompt))
+    repo, sep, key = credentials.partition(":")
+    return repo, key
 
 
 # utilities for managing package data

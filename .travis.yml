@@ -2,13 +2,12 @@ language: python
 python: 
   - "2.6"
   - "2.7"
-  - "3.2"
   - "3.3"
   - "3.4"
 
 env:
   global:
-    secure: "GOWi69wBCffn2Xori4LP3bpnNwwaF6NwiARC5gfQgvIthUP9DpC5FwIEXmBmcZ3Ky0OW1gA1twdJ6Bj6H7fWp0j+0He1EtuYySACazuogdE3lTBKdD/BLPuspidqWqyMLwBvHLolLCdj4fN6Zw0NG+CmFY3kO96kBNBGBSl9eDo="
+    secure: "UAF20lTc39jSTSM8eCW2J2ZF9dWpJ/ROO99fLkvL8BKUrJqYWumfeq2bC7jARpBAeciSfguECPxRqMzNDy8qejY78zQmzRjHJrS3MlL0B4BHL1u/quy8AlCZHRLoJEILnXEQDRKpDw3JAEnM5l/wQ23XRU2Guo9K5vI2rPQezGE="
   matrix: 
     - HTTP_LIBRARY=requests
 
@@ -19,7 +18,8 @@ before_install:
   - pip install coverage 
 
 install: 
-  - pip install $HTTP_LIBRARY 
+  - pip install $HTTP_LIBRARY
+  - pip install jsonschema
 
 script:
   - pep8 .
