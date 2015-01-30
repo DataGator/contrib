@@ -1,0 +1,6 @@
+.coverage
+.DS_Store
+build
+*.pyc
+*.pyo
+
