@@ -11,6 +11,11 @@
 """
 
 from __future__ import unicode_literals, with_statement
+from ._compat import to_native
+
+__all__ = ['Repo', ]
+__all__ = [to_native(n) for n in __all__]
+
 
 from ._backend import DataGatorClient
 

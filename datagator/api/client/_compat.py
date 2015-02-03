@@ -33,9 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import unicode_literals, with_statement
 
-
+import os
 import sys
 
+
+DEBUG = os.environ.get("DEBUG", False) and not os.environ.get("NDEBUG", False)
 
 PY2 = (sys.version_info[0] == 2)
 

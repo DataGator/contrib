@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-    test
-    ~~~~
+    tests
+    ~~~~~
+
+    Public Test Suite for `DataGator`_.
+
+    .. _`DataGator`: http://www.data-gator.com/
 
     :copyright: 2015 by `University of Denver <http://pardee.du.edu/>`_
     :license: Apache 2.0, see LICENSE for more details.
@@ -11,14 +15,17 @@
 """
 
 from __future__ import unicode_literals
+from .config import to_native
 
-__all__ = [b'test_suite', ]
+__all__ = ['test_suite', ]
+__all__ = [to_native(n) for n in __all__]
 
 
 import os
 import sys
 
 from .config import unittest
+
 
 from importlib import import_module
 from pkgutil import iter_modules
