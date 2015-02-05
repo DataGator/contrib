@@ -23,7 +23,7 @@ import os
 import requests
 
 from . import environ
-from .._compat import to_bytes, DEBUG
+from .._compat import to_bytes
 
 _log = logging.getLogger("datagator.api.client")
 
@@ -35,7 +35,7 @@ class DataGatorClient(object):
 
     __slots__ = ['__http', '__auth', ]
 
-    def __init__(self, auth=None, verify=not DEBUG):
+    def __init__(self, auth=None, verify=not environ.DEBUG):
         """
         Optional arguments:
 
@@ -58,7 +58,7 @@ class DataGatorClient(object):
         if verify:
             self.http.verify = verify
         else:
-            _log.warn("disabled SSL verification")
+            _log.warning("disabled SSL verification")
             self.http.verify = False
 
         self.http.allow_redirects = environ.DATAGATOR_API_FOLLOW_REDIRECT
@@ -90,7 +90,6 @@ class DataGatorClient(object):
             url="{0}{1}".format(
                 environ.DATAGATOR_API_URL,
                 path if path.startswith("/") else "/{0}".format(path)))
-        self.http.close()
         return r
 
     def put(self, path, data):
@@ -106,7 +105,6 @@ class DataGatorClient(object):
                 path if path.startswith("/") else "/{0}".format(path)),
             data=to_bytes(json.dumps(data)),
             auth=self.__auth)
-        self.http.close()
         return r
 
     @property
@@ -123,36 +121,12 @@ class DataGatorClient(object):
         """
         return self.get("schema").json()
 
-    pass
-
-
-def commit(dataset, changes, **kwargs):
-    """
-    :param dataset: identifier of the targeted ``DataSet``
-    :param changes: ``dict`` of commit operations
-    """
-
-    # HTTP(S) session
-    s = DataGatorClient(auth=(kwargs['user'], kwargs['password']))
-
-    # HTTP(S) POST request
-    payload = to_bytes(json.dumps(changes))
-
-    r = None
-    try:
-        r = s.http.request(
-            method="PUT",
-            url="/".join([environ.DATAGATOR_API_URL, dataset]),
-            verify=True,
-            data=payload,
-            headers=headers,
-            allow_redirects=environ.DATAGATOR_API_FOLLOW_REDIRECT,
-            timeout=environ.DATAGATOR_API_TIMEOUT)
-    except:
-        raise
-    else:
-        return r
-    finally:
-        s.http.close()
+    def __del__(self):
+        # close the underlying HTTP session upon garbage collection
+        try:
+            self.http.close()
+        except Exception as e:
+            _log.debug(e)
+        pass
 
     pass

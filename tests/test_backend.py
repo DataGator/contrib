@@ -33,7 +33,7 @@ import os
 import sys
 import time
 
-from datagator.api.client import _backend
+from datagator.api.client._backend import environ, DataGatorClient
 
 
 _log = logging.getLogger("datagator.tests.test_backend")
@@ -60,7 +60,12 @@ class TestBackendStatus(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.service = _backend.DataGatorClient()
+        cls.service = DataGatorClient()
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
         pass  # void return
 
     def test_backend_status(self):
@@ -69,8 +74,7 @@ class TestBackendStatus(unittest.TestCase):
         self.assertEqual(validator.validate(msg), None)
         self.assertEqual(msg.get("kind"), "datagator#Status")
         self.assertEqual(msg.get("code"), 200)
-        self.assertEqual(msg.get("version"),
-                         _backend.environ.DATAGATOR_API_VERSION)
+        self.assertEqual(msg.get("version"), environ.DATAGATOR_API_VERSION)
         pass  # void return
 
     pass
@@ -89,8 +93,13 @@ class TestRepoOperations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.repo, cls.secret = get_credentials()
-        cls.service = _backend.DataGatorClient(auth=(cls.repo, cls.secret))
+        cls.service = DataGatorClient(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
         pass  # void return
 
     def test_Repo_GET(self):
@@ -170,8 +179,13 @@ class TestDataSetOperations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.repo, cls.secret = get_credentials()
-        cls.service = _backend.DataGatorClient(auth=(cls.repo, cls.secret))
+        cls.service = DataGatorClient(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
         pass  # void return
 
     def test_DataSet_GET(self):

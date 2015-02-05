@@ -29,7 +29,8 @@ class EnvironModule(types.ModuleType):
         'DATAGATOR_API_SCHEME',
         'DATAGATOR_API_VERSION',
         'DATAGATOR_API_URL',
-        'DATAGATOR_API_USER_AGENT', ]]
+        'DATAGATOR_API_USER_AGENT',
+        'DEBUG', ]]
 
     __client_version__ = __client_version__
 
@@ -37,24 +38,37 @@ class EnvironModule(types.ModuleType):
                  "DATAGATOR_API_FOLLOW_REDIRECT",
                  "DATAGATOR_API_HOST",
                  "DATAGATOR_API_SCHEME",
-                 "DATAGATOR_API_VERSION", ]
+                 "DATAGATOR_API_VERSION",
+                 "DEBUG", ]
 
     def __init__(self, name, docs):
         import os
+        # domain name or IP address of backend service portal
         self.DATAGATOR_API_HOST = os.environ.get(
             "DATAGATOR_API_HOST", "www.data-gator.com")
+        # HTTP or HTTPS
         self.DATAGATOR_API_SCHEME = os.environ.get(
             "DATAGATOR_API_SCHEME", "https")
+        # API version (reserved for future extension)
         self.DATAGATOR_API_VERSION = os.environ.get(
             "DATAGATOR_API_VERSION", "v1")
+        # debugging mode (``NDEBUG=1`` takes precedence over ``DEBUG=1``)
+        self.DEBUG = int(os.environ.get("DEBUG", 0)) and \
+            not int(os.environ.get("NDEBUG", 0))
+        # encodings recognized by the HTTP library (favors gzip over identity)
         self.DATAGATOR_API_ACCEPT_ENCODING = "gzip, deflate, identity"
+        # allow server-side redirection
         self.DATAGATOR_API_FOLLOW_REDIRECT = False
+        # timeout of HTTP connection
         self.DATAGATOR_API_TIMEOUT = 180
         super(EnvironModule, self).__init__(name, docs)
         pass
 
     @property
     def DATAGATOR_API_URL(self):
+        """
+        URL prefix of all RESTful API endpoints
+        """
         return "{0}://{1}/api/{2}".format(
             self.DATAGATOR_API_SCHEME,
             self.DATAGATOR_API_HOST,
@@ -62,11 +76,14 @@ class EnvironModule(types.ModuleType):
 
     @property
     def DATAGATOR_API_USER_AGENT(self):
-        return "datagator-client (python/{0}.{1}.{2})".format(
+        """
+        User-Agent request header (see :RFC:`2616`)
+        """
+        return "datagator-api-client (python/{0}.{1}.{2})".format(
             *self.__client_version__)
 
     pass
 
-# override current module with an instance of EnvironManager to enable
+# override current Python module with an instance of EnvironModule to enable
 # fine-granular access control on some *derived* environment variables.
 sys.modules[__name__] = EnvironModule(__name__, __doc__)
