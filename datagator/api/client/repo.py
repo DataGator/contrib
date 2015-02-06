@@ -17,10 +17,10 @@ __all__ = ['Repo', ]
 __all__ = [to_native(n) for n in __all__]
 
 
-from ._backend import DataGatorClient
+from ._backend import DataGatorService
 
 
-class Repo(DataGatorClient):
+class Repo(DataGatorService):
 
     __slots__ = ['__name', ]
 

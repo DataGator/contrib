@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    tests.test_api
-    ~~~~~~~~~~~~~~
+    tests.test_service
+    ~~~~~~~~~~~~~~~~~~
 
     :copyright: 2015 by `University of Denver <http://pardee.du.edu/>`_
     :license: Apache 2.0, see LICENSE for more details.
@@ -33,10 +33,10 @@ import os
 import sys
 import time
 
-from datagator.api.client._backend import environ, DataGatorClient
+from datagator.api.client._backend import environ, DataGatorService
 
 
-_log = logging.getLogger("datagator.tests.test_backend")
+_log = logging.getLogger("datagator.{0}".format(__name__))
 
 
 def monitor_task(service, url, retry=5):
@@ -60,7 +60,7 @@ class TestBackendStatus(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.service = DataGatorClient()
+        cls.service = DataGatorService()
         pass  # void return
 
     @classmethod
@@ -93,7 +93,7 @@ class TestRepoOperations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.repo, cls.secret = get_credentials()
-        cls.service = DataGatorClient(auth=(cls.repo, cls.secret))
+        cls.service = DataGatorService(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
         pass  # void return
 
@@ -179,7 +179,7 @@ class TestDataSetOperations(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.repo, cls.secret = get_credentials()
-        cls.service = DataGatorClient(auth=(cls.repo, cls.secret))
+        cls.service = DataGatorService(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
         pass  # void return
 
