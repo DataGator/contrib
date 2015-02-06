@@ -23,7 +23,7 @@ __all__ = [to_native(n) for n in __all__]
 
 # package metadata
 
-__version__ = (0, 0, 2)
+__version__ = (0, 0, 3)
 __author__ = "LIU Yu"
 __contact__ = "liuyu@opencps.net"
 
