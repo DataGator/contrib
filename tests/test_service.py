@@ -13,19 +13,6 @@
 
 from __future__ import unicode_literals
 
-try:
-    from . import config
-    from .config import *
-except (ValueError, ImportError):
-    import config
-    from config import *
-
-__all__ = ['TestBackendStatus',
-           'TestRepoOperations',
-           'TestDataSetOperations', ]
-__all__ = [to_native(n) for n in __all__]
-
-
 import json
 import jsonschema
 import logging
@@ -33,7 +20,20 @@ import os
 import sys
 import time
 
+try:
+    from . import config
+    from .config import *
+except (ValueError, ImportError):
+    import config
+    from config import *
+
 from datagator.api.client._backend import environ, DataGatorService
+
+
+__all__ = ['TestBackendStatus',
+           'TestRepoOperations',
+           'TestDataSetOperations', ]
+__all__ = [to_native(n) for n in __all__]
 
 
 _log = logging.getLogger("datagator.{0}".format(__name__))

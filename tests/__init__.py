@@ -15,20 +15,18 @@
 """
 
 from __future__ import unicode_literals
-from .config import to_native
-
-__all__ = ['test_suite', ]
-__all__ = [to_native(n) for n in __all__]
-
 
 import os
 import sys
 
-from .config import unittest
-
-
 from importlib import import_module
 from pkgutil import iter_modules
+
+from .config import unittest, to_native
+
+
+__all__ = ['test_suite', ]
+__all__ = [to_native(n) for n in __all__]
 
 
 def load_tests(prefix="test_"):

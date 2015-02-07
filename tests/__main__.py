@@ -12,18 +12,17 @@
 """
 
 from __future__ import unicode_literals
-from .config import to_native
-
-__all__ = []
-__all__ = [to_native(n) for n in __all__]
-
 
 import os
 import os.path
 import sys
 
 from . import test_suite
-from .config import unittest
+from .config import unittest, to_native
+
+
+__all__ = []
+__all__ = [to_native(n) for n in __all__]
 
 
 if __name__ == '__main__':

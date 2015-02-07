@@ -15,9 +15,9 @@
 """
 
 from __future__ import unicode_literals
+
+from .service import DataGatorService
 from .._compat import to_native
 
 __all__ = ['DataGatorService', ]
 __all__ = [to_native(n) for n in __all__]
-
-from .service import DataGatorService

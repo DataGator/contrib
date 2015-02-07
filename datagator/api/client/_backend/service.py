@@ -11,11 +11,6 @@
 """
 
 from __future__ import unicode_literals, with_statement
-from .._compat import to_native
-
-__all__ = ['DataGatorService', ]
-__all__ = [to_native(n) for n in __all__]
-
 
 import json
 import logging
@@ -23,7 +18,11 @@ import os
 import requests
 
 from . import environ
-from .._compat import to_bytes
+from .._compat import to_bytes, to_native
+
+__all__ = ['DataGatorService', ]
+__all__ = [to_native(n) for n in __all__]
+
 
 _log = logging.getLogger("datagator.api.client")
 

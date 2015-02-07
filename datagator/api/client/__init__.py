@@ -15,9 +15,10 @@
 """
 
 from __future__ import unicode_literals, with_statement
+
 from ._compat import to_native
 
-__all__ = ['Repo', ]
+__all__ = []
 __all__ = [to_native(n) for n in __all__]
 
 
@@ -26,6 +27,3 @@ __all__ = [to_native(n) for n in __all__]
 __version__ = (0, 0, 3)
 __author__ = "LIU Yu"
 __contact__ = "liuyu@opencps.net"
-
-
-from .repo import Repo

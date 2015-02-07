@@ -12,10 +12,6 @@
 
 from __future__ import unicode_literals, with_statement
 
-__all__ = ['unittest', 'load_data', 'to_native', 'to_unicode',
-           'get_credentials', ]
-
-
 import atexit
 import logging
 import os
@@ -25,20 +21,15 @@ import shutil
 import sys
 import tempfile
 
-
-# local package takes precedence
-
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..")))
-
+from datagator.api.client._backend import environ
 from datagator.api.client._compat import to_unicode, to_native
 
+__all__ = ['unittest', 'load_data', 'to_native', 'to_unicode',
+           'get_credentials', ]
 __all__ = [to_native(n) for n in __all__]
 
 
 # switch on / off debugging mode
-
-from datagator.api.client._backend import environ
 
 logging.basicConfig()
 logging.getLogger().setLevel(
