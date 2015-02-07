@@ -9,7 +9,7 @@ env:
   global:
     secure: "UAF20lTc39jSTSM8eCW2J2ZF9dWpJ/ROO99fLkvL8BKUrJqYWumfeq2bC7jARpBAeciSfguECPxRqMzNDy8qejY78zQmzRjHJrS3MlL0B4BHL1u/quy8AlCZHRLoJEILnXEQDRKpDw3JAEnM5l/wQ23XRU2Guo9K5vI2rPQezGE="
   matrix:
-    - HTTP_LIBRARY=requests DATAGATOR_API_HOST=54.186.55.223 DEBUG=1
+    - HTTP_LIBRARY=requests DATAGATOR_API_HOST=54.148.2.78 DEBUG=1
 
 before_install: 
   - pip install pep8 
