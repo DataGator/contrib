@@ -21,6 +21,9 @@ import shutil
 import sys
 import tempfile
 
+# sys.path.insert(0, os.path.abspath(
+#     os.path.join(os.path.dirname(__file__), "..", "..")))
+
 from datagator.api.client._backend import environ
 from datagator.api.client._compat import to_unicode, to_native
 
@@ -87,7 +90,7 @@ TEMP_DIR = tempfile.mkdtemp()
 
 def save_temp(name, data=b"", mode=0o666):
     """
-    Writes data to a temporary file in the file system. Returns the full path
+    Write data to a temporary file in the file system. Returns the full path
     to the temporary file on success, and None otherwise.
     """
     path = os.path.join(TEMP_DIR, name)
@@ -106,7 +109,7 @@ def save_temp(name, data=b"", mode=0o666):
 
 def cleanup():
     """
-    Erases temporary files and directories created during the test.
+    Erase temporary files and directories created during the test.
     """
     shutil.rmtree(TEMP_DIR)
     pass

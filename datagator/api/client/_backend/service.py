@@ -79,22 +79,25 @@ class DataGatorService(object):
         """
         return self.__http
 
-    def get(self, path):
+    def get(self, path, headers={}):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
+        :param headers: extra HTTP headers to be sent with request.
         :returns: HTTP response object.
         """
         r = self.http.request(
             method="GET",
             url="{0}{1}".format(
                 environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)))
+                path if path.startswith("/") else "/{0}".format(path)),
+            headers=headers)
         return r
 
-    def put(self, path, data):
+    def put(self, path, data, headers={}):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
         :param data: JSON-serializable data object.
+        :param headers: extra HTTP headers to be sent with request.
         :returns: HTTP response object.
         """
         r = self.http.request(
@@ -103,7 +106,8 @@ class DataGatorService(object):
                 environ.DATAGATOR_API_URL,
                 path if path.startswith("/") else "/{0}".format(path)),
             data=to_bytes(json.dumps(data)),
-            auth=self.__auth)
+            auth=self.__auth,
+            headers=headers)
         return r
 
     @property
@@ -118,7 +122,7 @@ class DataGatorService(object):
         """
         JSON schema being used by the backend service
         """
-        return self.get("schema").json()
+        return self.get("/schema").json()
 
     def __del__(self):
         # close the underlying HTTP session upon garbage collection

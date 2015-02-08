@@ -32,7 +32,9 @@ from datagator.api.client._backend import environ, DataGatorService
 
 __all__ = ['TestBackendStatus',
            'TestRepoOperations',
-           'TestDataSetOperations', ]
+           'TestDataSetOperations',
+           'TestDataItemOperations',
+           'TestSearchOperations', ]
 __all__ = [to_native(n) for n in __all__]
 
 
@@ -103,7 +105,9 @@ class TestRepoOperations(unittest.TestCase):
         pass  # void return
 
     def test_Repo_GET(self):
-        repo = self.service.get(self.repo).json()
+        response = self.service.get(self.repo)
+        self.assertEqual(response.status_code, 200)
+        repo = response.json()
         self.assertEqual(self.validator.validate(repo), None)
         self.assertEqual(repo.get("kind"), "datagator#Repo")
         self.assertEqual(repo.get("name"), self.repo)
@@ -189,7 +193,9 @@ class TestDataSetOperations(unittest.TestCase):
         pass  # void return
 
     def test_DataSet_GET(self):
-        response = self.service.get("{0}/{1}".format(self.repo, "IGO_Members"))
+        id = "{0}/{1}".format(self.repo, "IGO_Members")
+        response = self.service.get(id)
+        self.assertEqual(response.status_code, 200)
         ds = response.json()
         self.assertEqual(self.validator.validate(ds), None)
         self.assertEqual(ds.get("kind"), "datagator#DataSet")
@@ -212,7 +218,8 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_PUT(self):
 
-        revisions = {
+        id = "{0}/{1}".format(self.repo, "IGO_Members")
+        revision = {
             "WTO": json.loads(to_unicode(
                 load_data(os.path.join("json", "IGO_Members", "WTO.json")))),
             "IMF": json.loads(to_unicode(
@@ -221,8 +228,7 @@ class TestDataSetOperations(unittest.TestCase):
                 load_data(os.path.join("json", "IGO_Members", "OPEC.json")))),
         }
 
-        response = self.service.put(
-            "{0}/{1}".format(self.repo, "IGO_Members"), revisions)
+        response = self.service.put(id, revision)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
@@ -237,6 +243,72 @@ class TestDataSetOperations(unittest.TestCase):
         self.assertEqual(task.get("kind"), "datagator#Task")
         self.assertEqual(task.get("status"), "SUC")
 
+        pass  # void return
+
+    pass
+
+
+@unittest.skipIf(
+    not os.environ.get('DATAGATOR_CREDENTIALS', None) and
+    os.environ.get('TRAVIS', False),
+    "credentials required for unsupervised testing")
+class TestDataItemOperations(unittest.TestCase):
+    """
+    Endpoint:
+        ``^/<repo>/<dataset>/<key>``
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo, cls.secret = get_credentials()
+        cls.service = DataGatorService(auth=(cls.repo, cls.secret))
+        cls.validator = jsonschema.Draft4Validator(cls.service.schema)
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
+        pass  # void return
+
+    def test_DataItem_GET(self):
+        id = "{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
+        UN = json.loads(to_unicode(
+            load_data(os.path.join("json", "IGO_Members", "UN.json"))))
+        # full GET
+        response = self.service.get(id)
+        self.assertEqual(response.status_code, 200)
+        item = response.json()
+        self.assertEqual(self.validator.validate(item), None)
+        self.assertEqual(item.get("kind"), "datagator#Matrix")
+        for k in ["rowsCount", "columnsCount", "rowHeaders", "columnHeaders"]:
+            self.assertEqual(item.get(k), UN.get(k))
+        # conditional GET
+        etag = response.headers.get("ETag")
+        response = self.service.get(id, {"If-None-Match": etag})
+        self.assertEqual(response.status_code, 304)
+        self.assertTrue("ETag" in response.headers)
+        self.assertEqual(response.headers['ETag'], etag)
+        pass  # void return
+
+    pass
+
+
+class TestSearchOperations(unittest.TestCase):
+    """
+    Endpoint:
+        ``^/search``
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo, cls.secret = get_credentials()
+        cls.service = DataGatorService(auth=(cls.repo, cls.secret))
+        cls.validator = jsonschema.Draft4Validator(cls.service.schema)
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
         pass  # void return
 
     pass
