@@ -6,14 +6,38 @@ Once evolved to its full-fledged form, ``DataGator`` will serve as a collaborati
 This repository collects public resources including specification documents, sample data, and code snippets for prospective contributors of the ``DataGator`` project.
 
 
+``clients``
+~~~~~~~~~~~
+
+.. image:: https://badge.fury.io/py/datagator-api-client.svg
+   :target: https://pypi.python.org/pypi/datagator-api-client
+   :alt: PyPI Package Version
+
+The HTTP client libraries of ``DataGator`` (aka. ``clients``) collects various `language bindings <http://en.wikipedia.org/wiki/Language_binding>`_ of ``DataGator``'s backend services, currently available in the following programming languages,
+
+- python:
+    `Pythonic binding of RESTful API <clients/python>`_
+
+
+``docs``
+~~~~~~~~
+
+The public documentation of ``DataGator`` (aka. ``docs``) collects specifications on data model, data exchange format, programming interfaces, etc.
+
+- api:
+    `Specification of RESTful API <docs/api.rst>`_
+- model:
+    `Specification of Core Data Model <docs/model.rst>`_
+
+
 ``tests``
 ~~~~~~~~~
 
 .. image:: https://travis-ci.org/liuyu81/datagator-contrib.svg?branch=master
    :target: https://travis-ci.org/liuyu81/datagator-contrib
-   :alt: Build Status
+   :alt: Travis CI Build Status
 
-The public test suite of ``DataGator`` (aka. ``tests``) is designed for (i) validation of ``DataGator``'s backend services through the RESTful API, and (ii) coverage testing of ``DataGator``'s HTTP client libraries.
+The public test suite of ``DataGator`` (aka. ``tests``) is designed for (i) validation of ``DataGator``'s backend services through the RESTful API, and (ii) coverage test of ``DataGator``'s HTTP client libraries.
 
 Basic usage is simply,
 

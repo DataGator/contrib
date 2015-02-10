@@ -1,5 +1,5 @@
-``DataGator`` Specification: Data Model [*]_
-============================================
+``DataGator`` Specification: Core Data Model [*]_
+=================================================
 
 ::
 
