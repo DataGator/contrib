@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    tests.test_service
+    tests.test_backend
     ~~~~~~~~~~~~~~~~~~
 
     :copyright: 2015 by `University of Denver <http://pardee.du.edu/>`_

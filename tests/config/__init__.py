@@ -21,11 +21,29 @@ import shutil
 import sys
 import tempfile
 
-# sys.path.insert(0, os.path.abspath(
-#     os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from datagator.api.client._backend import environ
-from datagator.api.client._compat import to_unicode, to_native
+# PEP8 E402 requires all imports to appear at the beginning of a file,
+# but we have to hack `sys.path` to make `datagator.api.client` available
+# before the import, thus the use of functional-level imports.
+
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "clients", "python")))
+
+
+def to_native(*args, **kwds):
+    from datagator.api.client import _compat
+    return _compat.to_native(*args, **kwds)
+
+
+def to_unicode(*args, **kwds):
+    from datagator.api.client import _compat
+    return _compat.to_unicode(*args, **kwds)
+
+
+def environ(name):
+    from datagator.api.client import _backend
+    return getattr(_backend.environ, name)
+
 
 __all__ = ['unittest', 'load_data', 'to_native', 'to_unicode',
            'get_credentials', ]
@@ -36,7 +54,7 @@ __all__ = [to_native(n) for n in __all__]
 
 logging.basicConfig()
 logging.getLogger().setLevel(
-    logging.DEBUG if environ.DEBUG else logging.WARNING)
+    logging.DEBUG if environ("DEBUG") else logging.WARNING)
 
 
 # PY 2 / 3 unification
