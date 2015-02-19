@@ -4,7 +4,7 @@
 ::
 
   author: LIU Yu <liuyu@opencps.net>
-  revision: 0.7
+  revision: 0.8
 
 .. [*] This document is copyrighted by the `Frederick S. Pardee Center for International Futures <http://pardee.du.edu>`_ (abbr. `Pardee`) at University of Denver, and distributed under the terms of the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (`CC BY-NC-ND 4.0 <http://creativecommons.org/licenses/by-nc-nd/4.0/>`_).
 
@@ -130,7 +130,7 @@ On failure, the response is a ``Message`` object with error code and description
 ``PUT``:
   create a new ``DataSet`` within the ``Repo`` identified by ``<repo>``. Note that ``PUT`` is a *committal* operation requiring `authentication <http://en.wikipedia.org/wiki/Basic_access_authentication>`_, e.g.,
 
-  
+
 .. code-block:: bash
 
     $ curl -i -X PUT -u "Pardee:<concealed>" -d @payload \
@@ -202,6 +202,8 @@ For another instance, if the ``DataSet`` object submitted within the ``payload``
         "message": "Invalid dataset repository 'Pardee'.",
         "service": "datagator.wsgi.api"
     }
+
+**Remarks:** ``DataGator`` accepts ``PUT`` to a ``Repo`` that already contains the submitted ``DataSet`` object. This ensures the *idempotence* of the ``PUT`` method as specified by :RFC:`2616`, namely, the side effects of :math:`N > 0` identical ``PUT`` requests SHOULD be the same as for a single ``PUT`` request. In the future, the schema of ``DataSet`` MAY be extended to contain additional properties such as keywords, copyright notices, etc. The semantics of the ``PUT`` method will, then, naturally extend to updating the ``DataSet``.
 
 
 Data Set Operations
@@ -280,13 +282,14 @@ On failure, the response is a ``Message`` object with error code and description
 where, the ``payload`` SHOULD contain a `dictionary <http://en.wikipedia.org/wiki/Associative_array>`_ of ``<key>``, ``<value>`` pairs, each specifying one of the three operations as follows,
 
 - ``create``:
-    If (i) the current ``HEAD`` revision of the ``DataSet`` does *not* contain a ``DataItem`` named ``<key>``, and (ii) ``<value>`` is a valid ``DataItem`` object, then, the pending revision of the ``DataSet`` will incorporate a new ``DataItem`` with ``<key>`` as identifier and ``<value>`` as content.
+    If (i) ``<value>`` is a valid ``DataItem`` object, and (ii) the current ``HEAD`` revision of the ``DataSet`` does *not* contain a ``DataItem`` named ``<key>``, then, the pending revision of the ``DataSet`` will incorporate a new ``DataItem`` with ``<key>`` as identifier and ``<value>`` as content.
 
 - ``update``:
-    If (i) the current ``HEAD`` revision of the ``DataSet`` already contains a ``DataItem`` named ``<key>``, and (ii) ``<value>`` is a valid ``DataItem`` object, then, the content of the ``DataItem`` named ``<key>`` will be replaced with ``<value>`` in the pending revision.
+    If (i) ``<value>`` is a valid ``DataItem`` object, and (ii) the current ``HEAD`` revision of the ``DataSet`` already contains a ``DataItem`` named ``<key>``, then, the content of the ``DataItem`` named ``<key>`` will be replaced with ``<value>`` in the pending revision.
 
 - ``remove``:
-    If (i) the current ``HEAD`` revision of the ``DataSet`` already contains a ``DataItem`` named ``<key>``, and (ii) ``<value>`` is equal to ``null``, then, the ``DataItem`` named ``<key>`` will be eliminated in the pending revision.
+    If (i) ``<value>`` is equal to ``null``, and (ii) the current ``HEAD`` revision of the ``DataSet`` contains a ``DataItem`` named ``<key>``, then, the ``DataItem`` named ``<key>`` will be eliminated in the pending revision. If, otherwise, the ``HEAD`` does *not* contain a ``DataItem`` named ``<key>``, the operation itself will be ignored, thus not affecting the pending revision.
+
 
 A ``PUT`` request MAY involve one or more of the above-mentioned operations.
 For instance, the following ``payload`` will (i) **create** / **update** a ``Matrix`` named ``NATO``, and (ii) **remove** the ``DataItem`` named ``WTO``, in the targeted ``DataSet`` (i.e. ``Pardee/IGO_Members``). All other ``DataItem``'s in the current ``HEAD`` revision of the targeted ``DataSet`` will be preserved *as-is* in the pending revision.
@@ -347,7 +350,9 @@ On failure, the response is also a ``Message`` object, but may bear a diversity 
 
 **Remarks:** All operations from the same ``PUT`` request will be committed in a single `transaction <http://en.wikipedia.org/wiki/Database_transaction>`_ by the *asynchronous* ``Task``. Namely, if any of the operations fails, then the pending revision will be revoked entirely, and the ``HEAD`` revision of the targeted ``DataSet`` will remain intact.
 In case a ``PUT`` request contains conflicting operations on the same ``DataItem`` -- e.g., both **update** and **remove**, or multiple **update**'s with distinct ``<value>``'s -- the ``Task`` MAY still succeed, but the outcome of revision is *undefined*.
-In addition, if (i) the ``PUT`` request only involves **update** operations, and (ii) the ``<value>``'s in the ``payload`` are identical to respective ``<value>``'s in the ``HEAD`` revision of the targeted ``DataSet``, then the pending revision will *not* be committed.
+In addition, if the ``PUT`` request is *trivial* -- i.e., the enclosed operations not yielding effective changes to the ``HEAD`` revision of the targeted ``DataSet``, such as (i) **update** operations with ``<value>``'s identical to those found in the ``HEAD`` revision, (ii) **delete** operations whose ``<key>``'s are not present in the ``HEAD`` revision, or (iii) payload being an empty dictionary -- then the pending revision will *not* be committed.
+
+The semantics of ``DataSet`` revision fits the definition of the ``PATCH`` method from :RFC:`5789`, i.e., to submit a set of changes (i.e. **create** / **update** / **delete**) to be applied to the targeted resource (i.e. ``DataSet``). ``DataGator`` chooses ``PUT`` over ``PATCH`` for two reasons, (i) standardized in 2010, the ``PATCH`` method is not as widely supported as other HTTP methods from :RFC:`2616`, especially on some older browsers and AJAX libraries, and (ii) the implementation of ``DataSet`` revision is guaranteed to be *idempotent*. Namely, instead of raising an error, ``DataGator`` silently ignores the attempt to delete a non-existent ``DataItem``, thus ensuring the side effects of :math:`N > 0` identical ``PUT`` requests is the same as for a single ``PUT`` request. As such, using the ``PUT`` method to represent ``DataSet`` revision is theoretically justified. In the future, when the support of ``PATCH`` method becomes mainstream, ``DataGator`` MAY re-implement ``DataSet`` revision using ``PATCH``, possibly in ``v2`` of its RESTful API.
 
 
 Data Item Operations
