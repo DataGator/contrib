@@ -93,6 +93,23 @@ class DataGatorService(object):
             headers=headers)
         return r
 
+    def post(self, path, data, headers={}):
+        """
+        :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
+        :param data: JSON-serializable data object.
+        :param headers: extra HTTP headers to be sent with request.
+        :returns: HTTP response object.
+        """
+        r = self.http.request(
+            method="POST",
+            url="{0}{1}".format(
+                environ.DATAGATOR_API_URL,
+                path if path.startswith("/") else "/{0}".format(path)),
+            data=to_bytes(json.dumps(data)),
+            auth=self.__auth,
+            headers=headers)
+        return r
+
     def put(self, path, data, headers={}):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.

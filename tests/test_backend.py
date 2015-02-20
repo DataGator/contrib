@@ -234,6 +234,13 @@ class TestRepoOperations(unittest.TestCase):
         self.assertEqual(msg.get("code"), 400)
         pass  # void return
 
+    def test_Repo_POST(self):
+        response = self.service.post(self.repo, "")
+        msg = response.json()
+        _log.debug(msg.get("message"))
+        self.assertEqual(msg.get("kind"), "datagator#Error")
+        self.assertEqual(msg.get("code"), 501)
+
     pass
 
 
