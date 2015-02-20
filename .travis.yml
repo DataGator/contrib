@@ -11,7 +11,7 @@ env:
   matrix:
     - HTTP_LIBRARY=requests DATAGATOR_API_HOST=54.148.2.78 DEBUG=1
 
-before_install: 
+before_install:
   - pip install pep8 
   - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install importlib; fi

@@ -62,6 +62,7 @@ class TestBackendStatus(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v1"
         cls.service = DataGatorService()
         pass  # void return
 
@@ -94,6 +95,7 @@ class TestRepoOperations(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v1"
         cls.repo, cls.secret = get_credentials()
         cls.service = DataGatorService(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
@@ -256,6 +258,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v1"
         cls.repo, cls.secret = get_credentials()
         cls.service = DataGatorService(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
@@ -429,6 +432,7 @@ class TestDataItemOperations(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v1"
         cls.repo, cls.secret = get_credentials()
         cls.service = DataGatorService(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
@@ -470,6 +474,7 @@ class TestSearchOperations(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v1"
         cls.repo, cls.secret = get_credentials()
         cls.service = DataGatorService(auth=(cls.repo, cls.secret))
         cls.validator = jsonschema.Draft4Validator(cls.service.schema)
