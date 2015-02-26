@@ -66,6 +66,7 @@ class DataGatorService(object):
         # common http headers shared by all requests
         self.http.headers.update({
             "User-Agent": environ.DATAGATOR_API_USER_AGENT,
+            "Accept": "application/json, */*",
             "Accept-Encoding": environ.DATAGATOR_API_ACCEPT_ENCODING,
             "Content-Type": "application/json"})
 
@@ -79,6 +80,20 @@ class DataGatorService(object):
         """
         return self.__http
 
+    def delete(self, path, headers={}):
+        """
+        :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
+        :param headers: extra HTTP headers to be sent with request.
+        :returns: HTTP response object.
+        """
+        r = self.http.request(
+            method="DELETE",
+            url="{0}{1}".format(
+                environ.DATAGATOR_API_URL,
+                path if path.startswith("/") else "/{0}".format(path)),
+            headers=headers)
+        return r
+
     def get(self, path, headers={}):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
@@ -87,6 +102,20 @@ class DataGatorService(object):
         """
         r = self.http.request(
             method="GET",
+            url="{0}{1}".format(
+                environ.DATAGATOR_API_URL,
+                path if path.startswith("/") else "/{0}".format(path)),
+            headers=headers)
+        return r
+
+    def head(self, path, headers={}):
+        """
+        :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
+        :param headers: extra HTTP headers to be sent with request.
+        :returns: HTTP response object.
+        """
+        r = self.http.request(
+            method="HEAD",
             url="{0}{1}".format(
                 environ.DATAGATOR_API_URL,
                 path if path.startswith("/") else "/{0}".format(path)),
@@ -110,19 +139,23 @@ class DataGatorService(object):
             headers=headers)
         return r
 
-    def post(self, path, data, headers={}):
+    def post(self, path, data, files={}, headers={}):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
         :param data: JSON-serializable data object.
+        :param file: dictionary of files ``{<key>: (<filename>, <file>)}``.
         :param headers: extra HTTP headers to be sent with request.
         :returns: HTTP response object.
         """
+        # this helps backend service to recognize file upload.
+        headers.update({'Content-Type': "multipart/form-data"})
         r = self.http.request(
             method="POST",
             url="{0}{1}".format(
                 environ.DATAGATOR_API_URL,
                 path if path.startswith("/") else "/{0}".format(path)),
             data=to_bytes(json.dumps(data)),
+            files=files,
             auth=self.__auth,
             headers=headers)
         return r
