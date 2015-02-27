@@ -27,6 +27,22 @@ __all__ = [to_native(n) for n in __all__]
 _log = logging.getLogger("datagator.api.client")
 
 
+def safe_url(path):
+
+    # avoid repetitive prefix
+    if path.startswith(environ.DATAGATOR_API_URL):
+        path = path[len(environ.DATAGATOR_API_URL):]
+    elif path.startswith("http://") or path.startswith("https://"):
+        raise AssertionError("unrecognized address: '{0}'".format(path))
+
+    # unify leading slash
+    if path.startswith("/"):
+        path = path[1:]
+
+    # finalize url
+    return "{0}/{1}".format(environ.DATAGATOR_API_URL, path)
+
+
 class DataGatorService(object):
     """
     HTTP client for DataGator's backend services.
@@ -88,9 +104,7 @@ class DataGatorService(object):
         """
         r = self.http.request(
             method="DELETE",
-            url="{0}{1}".format(
-                environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)),
+            url=safe_url(path),
             headers=headers)
         return r
 
@@ -102,9 +116,7 @@ class DataGatorService(object):
         """
         r = self.http.request(
             method="GET",
-            url="{0}{1}".format(
-                environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)),
+            url=safe_url(path),
             headers=headers)
         return r
 
@@ -116,9 +128,7 @@ class DataGatorService(object):
         """
         r = self.http.request(
             method="HEAD",
-            url="{0}{1}".format(
-                environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)),
+            url=safe_url(path),
             headers=headers)
         return r
 
@@ -131,9 +141,7 @@ class DataGatorService(object):
         """
         r = self.http.request(
             method="PATCH",
-            url="{0}{1}".format(
-                environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)),
+            url=safe_url(path),
             data=to_bytes(json.dumps(data)),
             auth=self.__auth,
             headers=headers)
@@ -147,15 +155,16 @@ class DataGatorService(object):
         :param headers: extra HTTP headers to be sent with request.
         :returns: HTTP response object.
         """
-        # this helps backend service to recognize file upload.
-        headers.update({'Content-Type': "multipart/form-data"})
+
+        if files:
+            headers.setdefault({'Content-Type': "multipart/form-data"})
+        else:
+            data = to_bytes(json.dumps(data))
+
         r = self.http.request(
             method="POST",
-            url="{0}{1}".format(
-                environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)),
-            data=to_bytes(json.dumps(data)),
-            files=files,
+            url=safe_url(path),
+            data=data,
             auth=self.__auth,
             headers=headers)
         return r
@@ -169,9 +178,7 @@ class DataGatorService(object):
         """
         r = self.http.request(
             method="PUT",
-            url="{0}{1}".format(
-                environ.DATAGATOR_API_URL,
-                path if path.startswith("/") else "/{0}".format(path)),
+            url=safe_url(path),
             data=to_bytes(json.dumps(data)),
             auth=self.__auth,
             headers=headers)

@@ -447,6 +447,35 @@ class TestDataItemOperations(unittest.TestCase):
         self.assertEqual(response.headers['ETag'], etag)
         pass  # void return
 
+    def test_DataItem_POST_MatrixToXlsx(self):
+        ID = "{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
+        data = {"fmt": "xlsx"}
+        # submit conversion request
+        response = self.service.post(ID, data=data)
+        _log.debug(response.text)
+        self.assertTrue(response.status_code in [201, 202])
+        self.assertTrue("Location" in response.headers)
+        url = response.headers['Location']
+        # ready for download
+        if response.status_code == 201:
+            download = self.service.get(url)
+            self.assertEqual(download.status_code, 200)
+            self.assertTrue("Content-Type" in download.headers)
+            self.assertEqual(
+                download.headers['Content-Type'], "application/octet-stream")
+            self.assertTrue("Content-Disposition" in download.headers)
+            pass
+
+        # pending conversion
+        if response.status_code == 202:
+            task = monitor_task(self.service, url)
+            self.assertEqual(self.validator.validate(task), None)
+            self.assertEqual(task.get("kind"), "datagator#Task")
+            self.assertEqual(task.get("status"), "SUC")
+            pass
+
+        pass  # void return
+
     pass
 
 
