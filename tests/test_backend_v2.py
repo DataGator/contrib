@@ -116,18 +116,21 @@ class TestRepoOperations(unittest.TestCase):
         pass  # void return
 
     def test_Repo_GET_NonExistence(self):
-        msg = self.service.get("NonExistence").json()
+        response = self.service.get("NonExistence")
+        self.assertEqual(response.status_code, 404)
+        msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 404)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_Repo_POST(self):
         response = self.service.post(self.repo, "")
+        self.assertEqual(response.status_code, 501)
         msg = response.json()
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 501)
+        self.assertEqual(msg.get("code"), response.status_code)
 
     pass
 
@@ -168,19 +171,12 @@ class TestDataSetOperations(unittest.TestCase):
         }
 
         response = self.service.put(ID, IGO_Members)
+        self.assertTrue(response.status_code in [200, 201])
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Status")
-        self.assertEqual(msg.get("code"), 202)
-
-        # monitor the task until the data set is ready or an error occurs
-        self.assertTrue("Location" in response.headers)
-        url = response.headers['Location']
-        task = monitor_task(self.service, url)
-        self.assertEqual(self.validator.validate(task), None)
-        self.assertEqual(task.get("kind"), "datagator#Task")
-        self.assertEqual(task.get("status"), "SUC")
+        self.assertEqual(msg.get("code"), response.status_code)
 
         pass  # void return
 
@@ -196,11 +192,12 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
         response = self.service.put(ID, InvalidName)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_00_PUT_MissingKind(self):
@@ -214,11 +211,12 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
         response = self.service.put(ID, MissingKind)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_00_PUT_InvalidKind(self):
@@ -229,11 +227,12 @@ class TestDataSetOperations(unittest.TestCase):
             "name": "Whatever"
         }
         response = self.service.put(ID, InvalidKind)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_00_PUT_InconsistentRepo(self):
@@ -248,11 +247,12 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
         response = self.service.put(ID, InconsistentRepo)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_01_PATCH(self):
@@ -270,11 +270,12 @@ class TestDataSetOperations(unittest.TestCase):
         }
 
         response = self.service.patch(ID, revision)
+        self.assertEqual(response.status_code, 202)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Status")
-        self.assertEqual(msg.get("code"), 202)
+        self.assertEqual(msg.get("code"), response.status_code)
 
         # monitor the task until the revision is committed or an error occurs
         self.assertTrue("Location" in response.headers)
@@ -291,11 +292,12 @@ class TestDataSetOperations(unittest.TestCase):
         ID = "{0}/{1}".format(self.repo, "IGO_Members")
         InvalidPayload = ["array", "as", "payload"]
         response = self.service.patch(ID, InvalidPayload)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_01_PATCH_MissingKind(self):
@@ -311,11 +313,12 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
         response = self.service.patch(ID, MissingKind)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_01_PATCH_InvalidKey(self):
@@ -326,11 +329,12 @@ class TestDataSetOperations(unittest.TestCase):
                 load_data(os.path.join("json", "IGO_Members", "WTO.json"))))
         }
         response = self.service.patch(ID, InvalidKey)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_01_PATCH_InvalidKind(self):
@@ -347,11 +351,12 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
         response = self.service.patch(ID, InvalidKind)
+        self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 400)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     def test_DataSet_01_PATCH_RemoveNonExistent(self):
@@ -363,11 +368,12 @@ class TestDataSetOperations(unittest.TestCase):
         }
 
         response = self.service.patch(ID, RemoveNonExistent)
+        self.assertEqual(response.status_code, 202)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         _log.debug(msg.get("message"))
         self.assertEqual(msg.get("kind"), "datagator#Status")
-        self.assertEqual(msg.get("code"), 202)
+        self.assertEqual(msg.get("code"), response.status_code)
 
         # monitor the task until the revision is committed or an error occurs
         self.assertTrue("Location" in response.headers)
@@ -395,10 +401,12 @@ class TestDataSetOperations(unittest.TestCase):
         pass  # void return
 
     def test_DataSet_02_GET_NonExistence(self):
-        msg = self.service.get("Pardee/NonExistence").json()
+        response = self.service.get("Pardee/NonExistence")
+        self.assertEqual(response.status_code, 404)
+        msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
         self.assertEqual(msg.get("kind"), "datagator#Error")
-        self.assertEqual(msg.get("code"), 404)
+        self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
     pass
@@ -450,12 +458,13 @@ class TestDataItemOperations(unittest.TestCase):
     def test_DataItem_POST_MatrixToXlsx(self):
         ID = "{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
         data = {"fmt": "xlsx"}
+
         # submit conversion request
         response = self.service.post(ID, data=data)
-        _log.debug(response.text)
         self.assertTrue(response.status_code in [201, 202])
         self.assertTrue("Location" in response.headers)
         url = response.headers['Location']
+
         # ready for download
         if response.status_code == 201:
             download = self.service.get(url)
