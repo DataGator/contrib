@@ -29,18 +29,23 @@ _log = logging.getLogger("datagator.api.client")
 
 def safe_url(path):
 
-    # avoid repetitive prefix
-    if path.startswith(environ.DATAGATOR_API_URL):
-        path = path[len(environ.DATAGATOR_API_URL):]
-    elif path.startswith("http://") or path.startswith("https://"):
-        raise AssertionError("unrecognized address: '{0}'".format(path))
+    request_uri = path
 
-    # unify leading slash
-    if path.startswith("/"):
-        path = path[1:]
+    # converting absolute url to relative path (ignore HTTP scheme)
+    if "://" in request_uri:
+        _, _, request_uri = request_uri.partition("://")
+        _, _, expected_prefix = environ.DATAGATOR_API_URL.partition("://")
+        if request_uri.startswith(expected_prefix):
+            request_uri = request_uri[len(expected_prefix):]
+        else:
+            raise AssertionError("unexpected address: '{0}'".format(path))
+
+    # unify relative path
+    if request_uri.startswith("/"):
+        request_uri = request_uri[1:]
 
     # finalize url
-    return "{0}/{1}".format(environ.DATAGATOR_API_URL, path)
+    return "{0}/{1}".format(environ.DATAGATOR_API_URL, request_uri)
 
 
 class DataGatorService(object):

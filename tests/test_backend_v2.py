@@ -280,6 +280,7 @@ class TestDataSetOperations(unittest.TestCase):
         # monitor the task until the revision is committed or an error occurs
         self.assertTrue("Location" in response.headers)
         url = response.headers['Location']
+        _log.debug(url)
         task = monitor_task(self.service, url)
         self.assertEqual(self.validator.validate(task), None)
         self.assertEqual(task.get("kind"), "datagator#Task")
@@ -378,6 +379,7 @@ class TestDataSetOperations(unittest.TestCase):
         # monitor the task until the revision is committed or an error occurs
         self.assertTrue("Location" in response.headers)
         url = response.headers['Location']
+        _log.debug(url)
         task = monitor_task(self.service, url)
         self.assertEqual(self.validator.validate(task), None)
         self.assertEqual(task.get("kind"), "datagator#Task")
@@ -464,6 +466,7 @@ class TestDataItemOperations(unittest.TestCase):
         self.assertTrue(response.status_code in [201, 202])
         self.assertTrue("Location" in response.headers)
         url = response.headers['Location']
+        _log.debug(url)
 
         # ready for download
         if response.status_code == 201:
