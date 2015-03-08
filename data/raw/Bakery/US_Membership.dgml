@@ -1,0 +1,13 @@
+# IGO Membership of United States
+load TestYX.IGO_Members as D
+
+yield "IGO", Range(1816, 2014)
+
+for IGO in D:
+    M = D[IGO]
+    index M by "Country"
+    if "United States" not in M:
+        continue
+    yield IGO, M["United States"]
+
+layout 1, 1
