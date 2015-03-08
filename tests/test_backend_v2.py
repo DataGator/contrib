@@ -34,6 +34,7 @@ __all__ = ['TestBackendStatus',
            'TestRepoOperations',
            'TestDataSetOperations',
            'TestDataItemOperations',
+           'TestRecipeOperations',
            'TestSearchOperations', ]
 __all__ = [to_native(n) for n in __all__]
 
@@ -158,12 +159,34 @@ class TestDataSetOperations(unittest.TestCase):
         del cls.service
         pass  # void return
 
-    def test_DataSet_00_PUT(self):
+    def test_DataSet_00_PUT_IGO_Members(self):
 
         ID = "{0}/{1}".format(self.repo, "IGO_Members")
         IGO_Members = {
             "kind": "datagator#DataSet",
             "name": "IGO_Members",
+            "repo": {
+                "kind": "datagator#Repo",
+                "name": self.repo
+            }
+        }
+
+        response = self.service.put(ID, IGO_Members)
+        self.assertTrue(response.status_code in [200, 201])
+        msg = response.json()
+        self.assertEqual(self.validator.validate(msg), None)
+        _log.debug(msg.get("message"))
+        self.assertEqual(msg.get("kind"), "datagator#Status")
+        self.assertEqual(msg.get("code"), response.status_code)
+
+        pass  # void return
+
+    def test_DataSet_00_PUT_Bakery(self):
+
+        ID = "{0}/{1}".format(self.repo, "Bakery")
+        IGO_Members = {
+            "kind": "datagator#DataSet",
+            "name": "Bakery",
             "repo": {
                 "kind": "datagator#Repo",
                 "name": self.repo
@@ -255,7 +278,7 @@ class TestDataSetOperations(unittest.TestCase):
         self.assertEqual(msg.get("code"), response.status_code)
         pass  # void return
 
-    def test_DataSet_01_PATCH(self):
+    def test_DataSet_01_PATCH_IGO_Members(self):
 
         ID = "{0}/{1}".format(self.repo, "IGO_Members")
         revision = {
@@ -267,6 +290,33 @@ class TestDataSetOperations(unittest.TestCase):
                 load_data(os.path.join("json", "IGO_Members", "IMF.json")))),
             "OPEC": json.loads(to_unicode(
                 load_data(os.path.join("json", "IGO_Members", "OPEC.json")))),
+        }
+
+        response = self.service.patch(ID, revision)
+        self.assertEqual(response.status_code, 202)
+        msg = response.json()
+        self.assertEqual(self.validator.validate(msg), None)
+        _log.debug(msg.get("message"))
+        self.assertEqual(msg.get("kind"), "datagator#Status")
+        self.assertEqual(msg.get("code"), response.status_code)
+
+        # monitor the task until the revision is committed or an error occurs
+        self.assertTrue("Location" in response.headers)
+        url = response.headers['Location']
+        _log.debug(url)
+        task = monitor_task(self.service, url)
+        self.assertEqual(self.validator.validate(task), None)
+        self.assertEqual(task.get("kind"), "datagator#Task")
+        self.assertEqual(task.get("status"), "SUC")
+
+        pass  # void return
+
+    def test_DataSet_01_PATCH_Bakery(self):
+
+        ID = "{0}/{1}".format(self.repo, "Bakery")
+        revision = {
+            "US_Membership.recipe": json.loads(to_unicode(load_data(
+                os.path.join("json", "Bakery", "US_Membership.json"))))
         }
 
         response = self.service.patch(ID, revision)
@@ -486,6 +536,81 @@ class TestDataItemOperations(unittest.TestCase):
             self.assertEqual(task.get("status"), "SUC")
             pass
 
+        pass  # void return
+
+    pass
+
+
+@unittest.skipIf(
+    not os.environ.get('DATAGATOR_CREDENTIALS', None) and
+    os.environ.get('TRAVIS', False),
+    "credentials required for unsupervised testing")
+class TestRecipeOperations(unittest.TestCase):
+    """
+    Endpoint:
+        ``^/<repo>/<dataset>/<key>.recipe``
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v2"
+        cls.repo, cls.secret = get_credentials()
+        cls.service = DataGatorService(auth=(cls.repo, cls.secret))
+        cls.validator = jsonschema.Draft4Validator(cls.service.schema)
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
+        pass  # void return
+
+    def test_Recipe_GET(self):
+        ID = "{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership.recipe")
+        AST = json.loads(to_unicode(
+            load_data(os.path.join("json", "Bakery", "US_Membership.json"))))
+        DGML = to_unicode(
+            load_data(os.path.join("raw", "Bakery", "US_Membership.dgml")))
+        # GET json
+        response = self.service.get(ID)
+        self.assertEqual(response.status_code, 200)
+        item = response.json()
+        self.assertEqual(self.validator.validate(item), None)
+        self.assertEqual(item.get("kind"), "datagator#Recipe")
+        self.assertEqual(len(item), len(AST))
+        # GET dgml
+        response = self.service.get("{0}?fmt=dgml".format(ID))
+        self.assertEqual(response.status_code, 200)
+        code = response.text
+        for u, v in zip(filter(None, code.split()),
+                        filter(None, DGML.split())):
+            self.assertEqual(u, v)
+        pass  # void return
+
+    def test_Recipe_POST(self):
+        ID = "{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership.recipe")
+        data = {"act": "bake"}
+        response = self.service.post(ID, data=data)
+        self.assertEqual(response.status_code, 202)
+        msg = response.json()
+        self.assertEqual(self.validator.validate(msg), None)
+        _log.debug(msg.get("message"))
+        self.assertEqual(msg.get("kind"), "datagator#Status")
+        self.assertEqual(msg.get("code"), response.status_code)
+        # monitor the task until the baking is completed or an error occurs
+        self.assertTrue("Location" in response.headers)
+        url = response.headers['Location']
+        _log.debug(url)
+        task = monitor_task(self.service, url)
+        self.assertEqual(self.validator.validate(task), None)
+        self.assertEqual(task.get("kind"), "datagator#Task")
+        self.assertEqual(task.get("status"), "SUC")
+        # download the baked matrix
+        ID = "{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership")
+        download = self.service.get(ID)
+        self.assertEqual(download.status_code, 200)
+        self.assertTrue("Content-Type" in download.headers)
+        self.assertEqual(download.headers['Content-Type'], "application/json")
+        self.assertTrue("Content-Disposition" in download.headers)
         pass  # void return
 
     pass
