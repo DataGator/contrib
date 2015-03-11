@@ -58,7 +58,7 @@ class EnvironModule(types.ModuleType):
         # encodings recognized by the HTTP library (favors gzip over identity)
         self.DATAGATOR_API_ACCEPT_ENCODING = "gzip, deflate, identity"
         # allow server-side redirection
-        self.DATAGATOR_API_FOLLOW_REDIRECT = False
+        self.DATAGATOR_API_FOLLOW_REDIRECT = True
         # timeout of HTTP connection
         self.DATAGATOR_API_TIMEOUT = 180
         super(EnvironModule, self).__init__(name, docs)
