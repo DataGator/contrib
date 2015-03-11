@@ -19,6 +19,17 @@ The HTTP client libraries of ``DataGator`` (aka. ``clients``) collects various `
     `Pythonic binding of RESTful API <clients/python>`_
 
 
+``data``
+~~~~~~~~
+
+The public data set of ``DataGator`` (aka. ``data``) collects examples of data items both in various raw formats and in consolidated JSON format.
+
+- raw:
+    data items in various original formats
+- json:
+    data items in consolidated JSON format
+
+
 ``docs``
 ~~~~~~~~
 
