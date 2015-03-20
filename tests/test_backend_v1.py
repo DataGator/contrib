@@ -280,7 +280,6 @@ class TestDataSetOperations(unittest.TestCase):
 
         # check if ds/repo/name matches the requested one
         repo = ds.get("repo")
-        self.assertEqual(self.validator.validate(repo), None)
         self.assertEqual(repo.get("kind"), "datagator#Repo")
         self.assertEqual(repo.get("name"), self.repo)
 

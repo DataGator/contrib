@@ -1,5 +1,6 @@
 # IGO Membership of United States
 load TestYX.IGO_Members as D
+load TestYX.IGO_Members.1["UN"] as U
 
 yield "IGO", Range(1816, 2014)
 
