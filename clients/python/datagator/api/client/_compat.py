@@ -41,6 +41,8 @@ PY2 = (sys.version_info[0] == 2)
 
 if PY2:
 
+    text_type = unicode
+
     def to_bytes(x, charset=sys.getdefaultencoding(), errors='strict'):
         if x is None:
             return None
@@ -56,6 +58,8 @@ if PY2:
         return x.encode(charset, errors)
 
 else:
+
+    text_type = str
 
     def to_bytes(x, charset=sys.getdefaultencoding(), errors='strict'):
         if x is None:
@@ -81,3 +85,14 @@ def to_unicode(x, charset=sys.getdefaultencoding(), errors='strict',
     if charset is None and allow_none_charset:
         return x
     return x.decode(charset, errors)
+
+
+def with_metaclass(meta, *bases):
+    """Create a base class with a metaclass."""
+    # This requires a bit of explanation: the basic idea is to make a dummy
+    # metaclass for one level of class instantiation that replaces itself with
+    # the actual metaclass.
+    class metaclass(meta):
+        def __new__(cls, name, this_bases, d):
+            return meta(to_native(name), bases, d)
+    return type.__new__(metaclass, to_native('temporary_class'), (), {})
