@@ -67,11 +67,7 @@ class DataGatorService(object):
 
         self.__http = requests.Session()
 
-        if auth:
-            _log.info("enabled HTTP authentication")
-            self.__auth = auth
-        else:
-            self.__auth = None
+        self.auth = auth
 
         # turn off SSL verification in DEBUG mode, i.e. the testbed web server
         # may not have a domain name matching the official SSL certificate
@@ -92,6 +88,19 @@ class DataGatorService(object):
             "Content-Type": "application/json"})
 
         super(DataGatorService, self).__init__()
+        pass
+
+    @property
+    def auth(self):
+        return self.__auth
+
+    @auth.setter
+    def auth(self, auth):
+        if auth:
+            _log.info("enabled HTTP authentication")
+            self.__auth = auth
+        else:
+            self.__auth = None
         pass
 
     @property
