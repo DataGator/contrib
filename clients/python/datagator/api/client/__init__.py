@@ -24,7 +24,7 @@ __all__ = [to_native(n) for n in __all__]
 
 # package metadata
 
-__version__ = (0, 0, 7)
+__version__ = (0, 1, 0)
 __author__ = "LIU Yu"
 __contact__ = "liuyu@opencps.net"
 __license__ = "Apache 2.0"

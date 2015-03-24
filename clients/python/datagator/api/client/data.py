@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    datagator.api.client.repo
+    datagator.api.client.data
     ~~~~~~~~~~~~~~~~~~~~~~~~~
 
     :copyright: 2015 by `University of Denver <http://pardee.du.edu/>`_

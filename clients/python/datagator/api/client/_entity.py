@@ -13,9 +13,12 @@
 from __future__ import unicode_literals, with_statement
 
 import abc
-import os
+import io
 import json
 import jsonschema
+import os
+import tempfile
+import vedis
 
 from ._backend import DataGatorService
 from ._compat import with_metaclass, to_native, to_unicode
@@ -25,17 +28,51 @@ __all__ = ['Entity', ]
 __all__ = [to_native(n) for n in __all__]
 
 
-class CacheManager(dict):
+class CacheManager(vedis.Vedis):
 
-    def delete(self, key):
-        return self.pop(key, None)
+    __slots__ = ['file', ]
 
-    def put(self, key, value):
-        self[key] = value
+    def __init__(self):
+        super(CacheManager, self).__init__(open_manually=True)
+        self.open()
         pass
 
-    def flush(self):
-        return self.clear()
+    @property
+    def database(self):
+        return to_native(self.file.name)
+
+    @database.setter
+    def database(self, database):
+        pass
+
+    def open(self):
+        try:
+            self.file = tempfile.NamedTemporaryFile(suffix=".DataGatorCache")
+        except IOError:
+            self.file = io.BytesIO()
+            self.file.name = ":mem:"
+        return super(CacheManager, self).open()
+
+    def close(self):
+        try:
+            super(CacheManager, self).close()
+            self.file.close()
+        except:
+            pass
+        finally:
+            self.file = None
+        pass
+
+    def get(self, key, value=None):
+        fetched = super(CacheManager, self).get(key)
+        return json.loads(fetched) if fetched else value
+
+    def put(self, key, value):
+        return super(CacheManager, self).set(key, json.dumps(value))
+
+    def __del__(self):
+        self.close()
+        pass
 
     pass
 
@@ -64,7 +101,8 @@ class Entity(with_metaclass(EntityType, object)):
         """
         flush global entity cache
         """
-        self.__cache__.flush()
+        self.__cache__.close()
+        self.__cache__.open()
 
     __slots__ = ['__kind', ]
 
