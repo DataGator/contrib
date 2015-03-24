@@ -95,6 +95,6 @@ setup(
     keywords=["DataGator", "client", "data science", "HTTP", "Pardee"],
     platforms="All",
     provides=["datagator.api.client", ],
-    requires=["requests", "jsonschema", "vedis", ],
+    requires=["requests", "jsonschema", "leveldb", ],
     url="https://github.com/DataGator/",
 )

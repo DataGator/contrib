@@ -13,65 +13,65 @@
 from __future__ import unicode_literals, with_statement
 
 import abc
+import atexit
 import io
 import json
 import jsonschema
+import leveldb
 import os
+import shutil
 import tempfile
-import vedis
 
 from ._backend import DataGatorService
-from ._compat import with_metaclass, to_native, to_unicode
+from ._compat import with_metaclass, to_bytes, to_native, to_unicode
 
 
 __all__ = ['Entity', ]
 __all__ = [to_native(n) for n in __all__]
 
 
-class CacheManager(vedis.Vedis):
+class CacheManager(object):
+    """
+    Disk-backed cache manager
+    """
 
-    __slots__ = ['file', ]
+    __slots__ = ['__db', '__fs', ]
 
-    def __init__(self):
-        super(CacheManager, self).__init__(open_manually=True)
-        self.open()
+    def __init__(self, fs=None):
+        self.__fs = fs or tempfile.mkdtemp(suffix=".DataGatorCache")
+        self.__db = None
         pass
 
     @property
-    def database(self):
-        return to_native(self.file.name)
-
-    @database.setter
-    def database(self, database):
-        pass
-
-    def open(self):
-        try:
-            self.file = tempfile.NamedTemporaryFile(suffix=".DataGatorCache")
-        except IOError:
-            self.file = io.BytesIO()
-            self.file.name = ":mem:"
-        return super(CacheManager, self).open()
-
-    def close(self):
-        try:
-            super(CacheManager, self).close()
-            self.file.close()
-        except:
-            pass
-        finally:
-            self.file = None
-        pass
+    def db(self):
+        if self.__db is None:
+            self.__db = leveldb.LevelDB(filename=to_native(self.__fs))
+        return self.__db
 
     def get(self, key, value=None):
-        fetched = super(CacheManager, self).get(key)
+        fetched = None
+        try:
+            fetched = to_unicode(self.db.Get(to_bytes(key)))
+        except KeyError:
+            pass
         return json.loads(fetched) if fetched else value
 
     def put(self, key, value):
-        return super(CacheManager, self).set(key, json.dumps(value))
+        return self.db.Put(to_bytes(key), to_bytes(json.dumps(value)))
+
+    def delete(self, key):
+        return self.db.Delete(to_bytes(key))
 
     def __del__(self):
-        self.close()
+        try:
+            self.__db = None
+            leveldb.DestroyDB(to_native(self.__fs))
+            shutil.rmtree(self.__fs)
+            self.__fs = None
+        except:
+            pass
+        finally:
+            self.__db = self.__fs = None
         pass
 
     pass
@@ -96,13 +96,9 @@ class Entity(with_metaclass(EntityType, object)):
     Abstract base class of all client-side entities
     """
 
-    @staticmethod
-    def flush():
-        """
-        flush global entity cache
-        """
-        self.__cache__.close()
-        self.__cache__.open()
+    @classmethod
+    def cleanup(cls):
+        setattr(cls, "__cache__", None)
 
     __slots__ = ['__kind', ]
 
@@ -164,3 +160,6 @@ class Entity(with_metaclass(EntityType, object)):
             self.__class__.__name__, self.uri, id(self))
 
     pass
+
+
+atexit.register(Entity.cleanup)
