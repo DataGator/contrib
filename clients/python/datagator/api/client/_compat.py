@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 """
+    datagator.api.client._compat
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Python 2 and 3 compatibility utilities found in this module originate from
+    multiple third-party projects and are distributed under respective licenses
+
+    - werkzeug (BSD license): http://werkzeug.pocoo.org/
+    - six (MIT license): https://pypi.python.org/pypi/six/
+
+
 Copyright (c) 2014 by the Werkzeug Team (http://werkzeug.pocoo.org/).
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +39,27 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+Copyright (c) 2010-2015 Benjamin Peterson (https://pypi.python.org/pypi/six).
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
 
 from __future__ import unicode_literals, with_statement
@@ -88,11 +119,7 @@ def to_unicode(x, charset=sys.getdefaultencoding(), errors='strict',
 
 
 def with_metaclass(meta, *bases):
-    """Create a base class with a metaclass."""
-    # This requires a bit of explanation: the basic idea is to make a dummy
-    # metaclass for one level of class instantiation that replaces itself with
-    # the actual metaclass.
     class metaclass(meta):
         def __new__(cls, name, this_bases, d):
             return meta(to_native(name), bases, d)
-    return type.__new__(metaclass, to_native('temporary_class'), (), {})
+    return type.__new__(metaclass, to_native("temporary_class"), (), {})
