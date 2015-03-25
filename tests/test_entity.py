@@ -27,8 +27,8 @@ except (ValueError, ImportError):
     import config
     from config import *
 
-from datagator.api.client._backend import environ
-from datagator.api.client.repo import Repo
+from datagator.api.client import environ
+from datagator.api.client.repo import Repo, DataSet
 
 
 __all__ = ['TestRepo',
@@ -59,15 +59,31 @@ class TestRepo(unittest.TestCase):
     def tearDownClass(cls):
         pass  # void return
 
-    def test_Repo_GET(self):
+    def test_Repo_init(self):
         repo = Repo(self.repo)
         self.assertEqual(repo.kind, "Repo")
         self.assertEqual(repo.name, self.repo)
         pass  # void return
 
-    def test_Repo_GET_NonExistence(self):
+    def test_Repo_init_NonExistence(self):
         r = Repo("NonExistance")
         self.assertRaises(KeyError, len, r)
+        pass  # void return
+
+    def test_Repo_iter(self):
+        repo = Repo(self.repo)
+        cnt = 0
+        for dsname in repo:
+            ds = repo[dsname]
+            cnt += 1
+            self.assertIsInstance(ds, DataSet)
+        self.assertEqual(len(repo), cnt)
+        pass  # void return
+
+    def test_Repo_membership(self):
+        repo = Repo(self.repo)
+        self.assertTrue("IGO_Members" in repo)
+        self.assertTrue("a/b" not in repo)
         pass  # void return
 
     pass

@@ -14,15 +14,15 @@ from __future__ import unicode_literals, with_statement
 
 import abc
 import atexit
-import io
+import importlib
 import json
 import jsonschema
-import leveldb
 import os
 import shutil
-import tempfile
 
+from . import environ
 from ._backend import DataGatorService
+from ._cache import CacheManager
 from ._compat import with_metaclass, to_bytes, to_native, to_unicode
 
 
@@ -30,62 +30,28 @@ __all__ = ['Entity', ]
 __all__ = [to_native(n) for n in __all__]
 
 
-class CacheManager(object):
-    """
-    Disk-backed cache manager
-    """
-
-    __slots__ = ['__db', '__fs', ]
-
-    def __init__(self, fs=None):
-        self.__fs = fs or tempfile.mkdtemp(suffix=".DataGatorCache")
-        self.__db = None
-        pass
-
-    @property
-    def db(self):
-        if self.__db is None:
-            self.__db = leveldb.LevelDB(filename=to_native(self.__fs))
-        return self.__db
-
-    def get(self, key, value=None):
-        fetched = None
-        try:
-            fetched = to_unicode(self.db.Get(to_bytes(key)))
-        except KeyError:
-            pass
-        return json.loads(fetched) if fetched else value
-
-    def put(self, key, value):
-        return self.db.Put(to_bytes(key), to_bytes(json.dumps(value)))
-
-    def delete(self, key):
-        return self.db.Delete(to_bytes(key))
-
-    def __del__(self):
-        try:
-            self.__db = None
-            leveldb.DestroyDB(to_native(self.__fs))
-            shutil.rmtree(self.__fs)
-            self.__fs = None
-        except:
-            pass
-        finally:
-            self.__db = self.__fs = None
-        pass
-
-    pass
-
-
 class EntityType(type):
 
     def __new__(cls, name, parent, prop):
-        credentials = os.environ.get('DATAGATOR_CREDENTIALS', "")
-        repo, sep, key = credentials.partition(":")
+
+        # initialize singleton backend service shared by all entities
+        repo, sep, key = environ.DATAGATOR_CREDENTIALS.partition(":")
         auth = (repo, key) if repo and key else None
-        prop['service'] = service = DataGatorService(auth=auth)
+        service = DataGatorService(auth=auth)
+        prop['service'] = service
         prop['schema'] = jsonschema.Draft4Validator(service.schema)
-        prop['__cache__'] = CacheManager()
+
+        # initialize singleton cache manager shared by all entities
+        try:
+            mod, sep, cm_cls = environ.DATAGATOR_CACHE_BACKEND.rpartition(".")
+            CacheManagerBackend = getattr(importlib.import_module(mod), cm_cls)
+            assert(issubclass(CacheManagerBackend, CacheManager))
+        except (ImportError, AssertionError):
+            raise AssertionError("invalid cache backend '{0}'".format(
+                environ.DATAGATOR_CACHE_BACKEND))
+        else:
+            prop['__cache__'] = CacheManagerBackend()
+
         return type(to_native(name), parent, prop)
 
     pass
@@ -98,7 +64,9 @@ class Entity(with_metaclass(EntityType, object)):
 
     @classmethod
     def cleanup(cls):
+        # decref triggers garbage collection of the cache manager backend
         setattr(cls, "__cache__", None)
+        pass
 
     __slots__ = ['__kind', ]
 
@@ -132,7 +100,8 @@ class Entity(with_metaclass(EntityType, object)):
             assert(data.get("kind") == "datagator#{0}".format(self.kind)), \
                 "unexpected entity kind '{0}'".format(data.get("kind"))
             # cache data for reuse
-            self.__cache__.put(self.uri, data)
+            if response.headers.get('Cache-Control', None) != "no-cache":
+                self.__cache__.put(self.uri, data)
         return data
 
     @cache.setter

@@ -17,7 +17,7 @@ import logging
 import os
 import requests
 
-from . import environ
+from .. import environ
 from .._compat import to_bytes, to_native
 
 __all__ = ['DataGatorService', ]

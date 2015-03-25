@@ -27,7 +27,8 @@ except (ValueError, ImportError):
     import config
     from config import *
 
-from datagator.api.client._backend import environ, DataGatorService
+from datagator.api.client import environ
+from datagator.api.client._backend import DataGatorService
 
 
 __all__ = ['TestBackendStatus',

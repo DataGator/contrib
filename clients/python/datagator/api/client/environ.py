@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-    datagator.api.client._backend.environ
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    datagator.api.client.environ
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     :copyright: 2015 by `University of Denver <http://pardee.du.edu/>`_
     :license: Apache 2.0, see LICENSE for more details.
@@ -15,8 +15,8 @@ from __future__ import unicode_literals, with_statement
 import sys
 import types
 
-from .. import __version__ as __client_version__
-from .._compat import to_native
+from . import __version__ as __client_version__
+from ._compat import to_native
 
 
 class EnvironModule(types.ModuleType):
@@ -30,6 +30,8 @@ class EnvironModule(types.ModuleType):
         'DATAGATOR_API_VERSION',
         'DATAGATOR_API_URL',
         'DATAGATOR_API_USER_AGENT',
+        'DATAGATOR_CACHE_BACKEND',
+        'DATAGATOR_CREDENTIALS',
         'DEBUG', ]]
 
     __client_version__ = __client_version__
@@ -39,6 +41,8 @@ class EnvironModule(types.ModuleType):
                  "DATAGATOR_API_HOST",
                  "DATAGATOR_API_SCHEME",
                  "DATAGATOR_API_VERSION",
+                 "DATAGATOR_CACHE_BACKEND",
+                 "DATAGATOR_CREDENTIALS",
                  "DEBUG", ]
 
     def __init__(self, name, docs):
@@ -51,7 +55,14 @@ class EnvironModule(types.ModuleType):
             "DATAGATOR_API_SCHEME", "https")
         # API version (reserved for future extension)
         self.DATAGATOR_API_VERSION = os.environ.get(
-            "DATAGATOR_API_VERSION", "v1")
+            "DATAGATOR_API_VERSION", "v2")
+        # disk-persistent cache manager backend
+        self.DATAGATOR_CACHE_BACKEND = os.environ.get(
+            "DATAGATOR_CACHE_BACKEND",
+            "datagator.api.client._cache.leveldb.LevelDbCache")
+        # access key to backend services
+        self.DATAGATOR_CREDENTIALS = os.environ.get(
+            "DATAGATOR_CREDENTIALS", "")
         # debugging mode (``NDEBUG=1`` takes precedence over ``DEBUG=1``)
         self.DEBUG = int(os.environ.get("DEBUG", 0)) and \
             not int(os.environ.get("NDEBUG", 0))

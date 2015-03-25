@@ -12,6 +12,9 @@
 
 from __future__ import unicode_literals, with_statement
 
+import jsonschema
+
+from . import environ
 from ._compat import to_native, to_unicode
 from ._entity import Entity
 
@@ -28,6 +31,16 @@ class DataSet(Entity):
         super(DataSet, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         self.__repo = repo
+        try:
+            # assertion of name and repo through schema validation
+            expected = {
+                "kind": "datagator#DataSet",
+                "name": self.name,
+                "repo": {"kind": "datagator#Repo", "name": self.repo.name}
+            }
+            self.schema.validate(expected)
+        except jsonschema.ValidationError:
+            raise AssertionError("invalid name or repository")
         pass
 
     @property
@@ -84,11 +97,39 @@ class Repo(Entity):
     def name(self):
         return self.__name
 
-    def __getitem__(self, name):
-        return DataSet(name, self)
+    def __contains__(self, dsname):
+        try:
+            # if `dsname` is not a valid name for a DataSet entity, then it
+            # cannot exist in the storage backend.
+            ds = DataSet(dsname, self)
+            # looking up `Entity.__cache__` is more preferrable than `ds.cache`
+            # because the latter may trigger connection to the backend service
+            if Entity.__cache__.exists(ds.uri):
+                return True
+            return ds.cache is not None
+        except (AssertionError, KeyError):
+            return False
+        return False  # should NOT reach here
 
-    def __setitem__(self, name, dataset):
+    def __getitem__(self, dsname):
+        if dsname in self:
+            return DataSet(dsname, self)
+        raise KeyError("invalid dataset")
+
+    def __setitem__(self, dsname, dataset):
         self.cache = None
+        try:
+            ds = DataSet(dsname, self).cache = None
+        except AssertionError:
+            raise KeyError("invalid dataset")
+        raise NotImplementedError()
+
+    def __delitem__(self):
+        self.cache = None
+        try:
+            ds = DataSet(name, self).cache = None
+        except AssertionError:
+            raise KeyError("invalid dataset")
         raise NotImplementedError()
 
     def __iter__(self):
@@ -96,7 +137,7 @@ class Repo(Entity):
             # invalidate dirty cache
             self.cache = None
         for ds in self.cache.get("items", []):
-            yield DataSet(ds.get("name"), self)
+            yield ds.get("name")
         pass
 
     def __len__(self):

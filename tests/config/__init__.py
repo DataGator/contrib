@@ -41,8 +41,8 @@ def to_unicode(*args, **kwds):
 
 
 def environ(name):
-    from datagator.api.client import _backend
-    return getattr(_backend.environ, name)
+    from datagator.api.client import environ
+    return getattr(environ, name)
 
 
 __all__ = ['unittest', 'load_data', 'to_native', 'to_unicode',
