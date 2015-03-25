@@ -66,24 +66,29 @@ class TestRepo(unittest.TestCase):
         pass  # void return
 
     def test_Repo_init_NonExistence(self):
-        r = Repo("NonExistance")
-        self.assertRaises(KeyError, len, r)
+        r = Repo("NonExistence")
+        self.assertRaises(AssertionError, len, r)
+        pass  # void return
+
+    def test_Repo_contains(self):
+        repo = Repo(self.repo)
+        self.assertTrue("IGO_Members" in repo)
+        self.assertTrue("NonExistence" not in repo)
+        self.assertTrue("A#B" not in repo)
         pass  # void return
 
     def test_Repo_iter(self):
         repo = Repo(self.repo)
         cnt = 0
         for dsname in repo:
-            ds = repo[dsname]
             cnt += 1
-            self.assertIsInstance(ds, DataSet)
         self.assertEqual(len(repo), cnt)
         pass  # void return
 
-    def test_Repo_membership(self):
+    def test_Repo_item(self):
         repo = Repo(self.repo)
-        self.assertTrue("IGO_Members" in repo)
-        self.assertTrue("a/b" not in repo)
+        repo['IGO_Members'] = []
+        self.assertIsInstance(repo['IGO_Members'], DataSet)
         pass  # void return
 
     pass

@@ -50,6 +50,9 @@ class LevelDbCache(CacheManager):
             self.__db = _leveldb.LevelDB(filename=to_native(self.__fs))
         return self.__db
 
+    def delete(self, key):
+        return self.db.Delete(to_bytes(key))
+
     def exists(self, key):
         try:
             raw = self.db.Get(to_bytes(key))
@@ -70,9 +73,6 @@ class LevelDbCache(CacheManager):
 
     def put(self, key, value):
         return self.db.Put(to_bytes(key), to_bytes(json.dumps(value)))
-
-    def delete(self, key):
-        return self.db.Delete(to_bytes(key))
 
     def __del__(self):
         try:

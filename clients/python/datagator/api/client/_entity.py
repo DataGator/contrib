@@ -85,17 +85,20 @@ class Entity(with_metaclass(EntityType, object)):
             response = self.service.get(self.uri)
             # response body should be a valid JSON object even in case of error
             if response.headers['Content-Type'] != "application/json":
-                raise ValueError("invalid response from backend service")
+                raise AssertionError("invalid response from backend service")
             # response should pass schema validation
             data = response.json()
-            self.schema.validate(data)
+            try:
+                self.schema.validate(data)
+            except jsonschema.ValidationError:
+                raise AssertionError("invalid response from backend service")
             # error responses always come with code and message
             if response.status_code != 200:
                 msg = "failed to load entity from backend service"
                 if data.get("kind") == "datagator#Error":
                     msg = "{0} ({1}): {2}".format(
                         msg, data.get("code", "N/A"), data.get("message", ""))
-                raise KeyError(msg)
+                raise AssertionError(msg)
             # valid response should bare a matching entity kind
             assert(data.get("kind") == "datagator#{0}".format(self.kind)), \
                 "unexpected entity kind '{0}'".format(data.get("kind"))
@@ -119,6 +122,11 @@ class Entity(with_metaclass(EntityType, object)):
     @property
     @abc.abstractmethod
     def uri(self):
+        return None
+
+    @property
+    @abc.abstractmethod
+    def id(self):
         return None
 
     def __json__(self):
