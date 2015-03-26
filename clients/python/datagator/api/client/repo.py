@@ -34,7 +34,7 @@ class DataSet(Entity):
         try:
             # the data set may not have been committed to the backend service
             # so we just verify the identifier is valid by the schema
-            Entity.__schema__.validate(self.id)
+            Entity.__schema__.validate(self.ref)
         except jsonschema.ValidationError:
             raise AssertionError("invalid dataset name")
         pass
@@ -44,11 +44,11 @@ class DataSet(Entity):
         return "{0}/{1}".format(self.repo.name, self.name)
 
     @property
-    def id(self):
+    def ref(self):
         return dict([
             ("kind", "datagator#DataSet"),
             ("name", self.name),
-            ("repo", self.repo.id),
+            ("repo", self.repo.ref),
         ])
 
     @property
@@ -85,8 +85,8 @@ class Repo(Entity):
     def __init__(self, name, access_key=None):
         super(Repo, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
-        # repository entities should be available from the backend service
-        assert(self.cache is not None)
+        if self.cache is None:
+            raise AssertionError("invalid repository '{0}'".format(self.name))
         if access_key is not None:
             Entity.__service__.auth = (self.name, access_key)
         pass
@@ -100,7 +100,7 @@ class Repo(Entity):
         return self.__name
 
     @property
-    def id(self):
+    def ref(self):
         return dict([
             ("kind", "datagator#Repo"),
             ("name", self.name),
@@ -142,7 +142,7 @@ class Repo(Entity):
         elif items.uri != ref.uri:
             raise ValueError("inconsistent dataset name and value")
         # create / update dataset
-        with validated(Entity.__service__.put(ref.uri, ref.id), (200, 201)):
+        with validated(Entity.__service__.put(ref.uri, ref.ref), (200, 201)):
             # invalidate local cache
             ref.cache = None
             self.cache = None

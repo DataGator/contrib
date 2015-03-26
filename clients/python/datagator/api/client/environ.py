@@ -29,8 +29,8 @@ class EnvironModule(types.ModuleType):
         'DATAGATOR_API_VERSION',
         'DATAGATOR_API_URL',
         'DATAGATOR_API_USER_AGENT',
+        'DATAGATOR_HOME',
         'DATAGATOR_CACHE_BACKEND',
-        'DATAGATOR_CREDENTIALS',
         'DEBUG', ]]
 
     # version tuple of the pythonic HTTP client library
@@ -41,6 +41,7 @@ class EnvironModule(types.ModuleType):
                  "DATAGATOR_API_HOST",
                  "DATAGATOR_API_SCHEME",
                  "DATAGATOR_API_VERSION",
+                 "DATAGATOR_HOME",
                  "DATAGATOR_CACHE_BACKEND",
                  "DEBUG", ]
 
@@ -55,6 +56,10 @@ class EnvironModule(types.ModuleType):
         # API version (reserved for future extension)
         self.DATAGATOR_API_VERSION = os.environ.get(
             "DATAGATOR_API_VERSION", "v2")
+        #
+        self.DATAGATOR_HOME = os.environ.get(
+            "DATAGATOR_HOME",
+            os.path.expanduser(os.path.join("~", ".datagator")))
         # disk-persistent cache manager backend
         self.DATAGATOR_CACHE_BACKEND = os.environ.get(
             "DATAGATOR_CACHE_BACKEND",

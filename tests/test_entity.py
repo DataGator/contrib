@@ -73,7 +73,8 @@ class TestRepo(unittest.TestCase):
         repo = Repo(self.repo)
         self.assertTrue("IGO_Members" in repo)
         self.assertTrue("NonExistence" not in repo)
-        self.assertTrue("A#B" not in repo)
+        self.assertTrue("A#B" not in repo)  # invalid dataset name
+        self.assertTrue("IGO_Members/UN" not in repo)  # non-dataset URI
         pass  # void return
 
     def test_Repo_iter(self):
@@ -88,6 +89,7 @@ class TestRepo(unittest.TestCase):
         repo = Repo(self.repo, self.secret)
         repo['IGO_Members'] = []
         self.assertIsInstance(repo['IGO_Members'], DataSet)
+        self.assertTrue(repo['IGO_Members'].cache is not None)
         pass  # void return
 
     pass

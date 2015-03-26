@@ -57,7 +57,7 @@ def get_data_files():
 
 
 # make sure local package takes precedence over installed (old) package
-sys.path.insert(0, join("src", ))
+sys.path.insert(0, join(".", ))
 pkg = __import__('datagator.api.client', fromlist=["datagator.api"])
 
 
@@ -68,7 +68,8 @@ setup(
         "datagator": join(".", "datagator", ),
         "datagator.api": join(".", "datagator", "api"),
         "datagator.api.client": join(".", "datagator", "api", "client"), },
-    package_data={},
+    package_data={
+        "datagator.api.client": ["schema.json", ]},
     data_files=get_data_files(),
     version=".".join(map(str, pkg.__version__)),
     author=pkg.__author__,

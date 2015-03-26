@@ -100,14 +100,6 @@ class EntityType(type):
 
     def __new__(cls, name, parent, prop):
 
-        # initialize backend service shared by all entities
-        try:
-            service = DataGatorService()
-            prop['__service__'] = service
-            prop['__schema__'] = jsonschema.Draft4Validator(service.schema)
-        except:
-            raise RuntimeError("failed to initialize backend service")
-
         # initialize cache manager shared by all entities
         try:
             mod, sep, cm_cls = environ.DATAGATOR_CACHE_BACKEND.rpartition(".")
@@ -118,6 +110,31 @@ class EntityType(type):
                 environ.DATAGATOR_CACHE_BACKEND))
         else:
             prop['__cache__'] = CacheManagerBackend()
+
+        # initialize backend service shared by all entities
+        try:
+            service = DataGatorService()
+        except:
+            raise RuntimeError("failed to initialize backend service")
+        else:
+            prop['__service__'] = service
+
+        # initialize schema validator shared by all entities
+        try:
+            # load schema from local file if exists (fast but may be staled)
+            filename = os.path.join(os.path.dirname(__file__), "schema.json")
+            schema = None
+            if os.access(filename, os.F_OK | os.R_OK):
+                with open(filename, "r") as f:
+                    schema = json.load(f)
+                    f.close()
+            # load schema from service backend (slow but always up-to-date)
+            if schema is None:
+                schema = prop['__service__'].schema
+        except:
+            raise RuntimeError("failed to initialize schema validator")
+        else:
+            prop['__schema__'] = jsonschema.Draft4Validator(schema)
 
         return type(to_native(name), parent, prop)
 
@@ -178,7 +195,7 @@ class Entity(with_metaclass(EntityType, object)):
 
     @property
     @abc.abstractmethod
-    def id(self):
+    def ref(self):
         return None
 
     def __json__(self):
