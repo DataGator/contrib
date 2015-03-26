@@ -35,15 +35,17 @@ class validated(object):
     Context manager and proxy to validated response from backend service
     """
 
-    __slots__ = ['__response', '__expected', '__body', ]
+    __slots__ = ['__response', '__expected_codes', '__body', ]
 
-    def __init__(self, response, expected=(200, )):
+    def __init__(self, response, verify_code=True):
         """
         :param response: response object from the backend service
         :param exptected: `list` or `tuple` of expected status codes
         """
         self.__response = response
-        self.__expected = expected
+        self.__expected_codes = tuple(verify_code) \
+            if isinstance(verify_code, (list, tuple)) else (200, ) \
+            if verify_code else None
         self.__body = None
         pass
 
@@ -73,7 +75,8 @@ class validated(object):
             raise RuntimeError("invalid response from backend service")
         else:
             # validate status code
-            if self.status_code not in self.__expected:
+            if self.__expected_codes is not None and \
+                    self.status_code not in self.__expected_codes:
                 # error responses always come with code and message
                 msg = "unexpected response from backend service"
                 if data.get("kind") == "datagator#Error":

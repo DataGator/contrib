@@ -32,6 +32,8 @@ class DataSet(Entity):
         self.__name = to_unicode(name)
         self.__repo = repo
         try:
+            # the data set may not have been committed to the backend service
+            # so we just verify the identifier is valid by the schema
             Entity.__schema__.validate(self.id)
         except jsonschema.ValidationError:
             raise AssertionError("invalid dataset name")
@@ -80,11 +82,13 @@ class Repo(Entity):
 
     __slots__ = ['__name', ]
 
-    def __init__(self, name, credentials=None):
+    def __init__(self, name, access_key=None):
         super(Repo, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
-        if credentials is not None:
-            Entity.__service__.auth = (self.name, credentials)
+        # repository entities should be available from the backend service
+        assert(self.cache is not None)
+        if access_key is not None:
+            Entity.__service__.auth = (self.name, access_key)
         pass
 
     @property
@@ -124,18 +128,18 @@ class Repo(Entity):
             pass
         raise KeyError("invalid dataset")
 
-    def __setitem__(self, dsname, dataset):
+    def __setitem__(self, dsname, items):
         ref = None
         try:
             ref = DataSet(dsname, self)
         except (AssertionError, ):
             raise KeyError("invalid dataset name")
-        if isinstance(dataset, (dict, list, tuple)):
+        if isinstance(items, (dict, list, tuple)):
             # inspect and serialize content
             pass
-        elif not isinstance(dataset, DataSet):
+        elif not isinstance(items, DataSet):
             raise ValueError("invalid dataset value")
-        elif dataset.uri != ref.uri:
+        elif items.uri != ref.uri:
             raise ValueError("inconsistent dataset name and value")
         # create / update dataset
         with validated(Entity.__service__.put(ref.uri, ref.id), (200, 201)):

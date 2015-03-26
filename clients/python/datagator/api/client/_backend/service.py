@@ -24,7 +24,7 @@ __all__ = ['DataGatorService', ]
 __all__ = [to_native(n) for n in __all__]
 
 
-_log = logging.getLogger("datagator.api.client")
+_log = logging.getLogger(__package__)
 
 
 def safe_url(path):

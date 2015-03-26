@@ -29,6 +29,8 @@ import tempfile
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "clients", "python")))
 
+logging.basicConfig()
+
 
 def to_native(*args, **kwds):
     from datagator.api.client import _compat
@@ -52,7 +54,6 @@ __all__ = [to_native(n) for n in __all__]
 
 # switch on / off debugging mode
 
-logging.basicConfig()
 logging.getLogger().setLevel(
     logging.DEBUG if environ("DEBUG") else logging.WARNING)
 
