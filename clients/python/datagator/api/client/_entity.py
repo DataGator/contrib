@@ -99,9 +99,7 @@ class EntityType(type):
 
         # initialize backend service shared by all entities
         try:
-            repo, sep, key = environ.DATAGATOR_CREDENTIALS.partition(":")
-            auth = (repo, key) if repo and key else None
-            service = DataGatorService(auth=auth)
+            service = DataGatorService()
             prop['__service__'] = service
             prop['__schema__'] = jsonschema.Draft4Validator(service.schema)
         except:

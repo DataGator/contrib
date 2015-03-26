@@ -28,7 +28,7 @@ except (ValueError, ImportError):
     from config import *
 
 from datagator.api.client import environ
-from datagator.api.client.repo import Repo, DataSet
+from datagator.api.client import Repo, DataSet
 
 
 __all__ = ['TestRepo',
@@ -86,7 +86,7 @@ class TestRepo(unittest.TestCase):
         pass  # void return
 
     def test_Repo_item(self):
-        repo = Repo(self.repo)
+        repo = Repo(self.repo, self.secret)
         repo['IGO_Members'] = []
         self.assertIsInstance(repo['IGO_Members'], DataSet)
         pass  # void return

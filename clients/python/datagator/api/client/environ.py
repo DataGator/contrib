@@ -15,7 +15,6 @@ from __future__ import unicode_literals, with_statement
 import sys
 import types
 
-from . import __version__ as __client_version__
 from ._compat import to_native
 
 
@@ -34,7 +33,8 @@ class EnvironModule(types.ModuleType):
         'DATAGATOR_CREDENTIALS',
         'DEBUG', ]]
 
-    __client_version__ = __client_version__
+    # version tuple of the pythonic HTTP client library
+    __client_version__ = (0, 1, 1)
 
     __slots__ = ["DATAGATOR_API_ACCEPT_ENCODING",
                  "DATAGATOR_API_FOLLOW_REDIRECT",
@@ -42,7 +42,6 @@ class EnvironModule(types.ModuleType):
                  "DATAGATOR_API_SCHEME",
                  "DATAGATOR_API_VERSION",
                  "DATAGATOR_CACHE_BACKEND",
-                 "DATAGATOR_CREDENTIALS",
                  "DEBUG", ]
 
     def __init__(self, name, docs):
@@ -60,9 +59,6 @@ class EnvironModule(types.ModuleType):
         self.DATAGATOR_CACHE_BACKEND = os.environ.get(
             "DATAGATOR_CACHE_BACKEND",
             "datagator.api.client._cache.leveldb.LevelDbCache")
-        # access key to backend services
-        self.DATAGATOR_CREDENTIALS = os.environ.get(
-            "DATAGATOR_CREDENTIALS", "")
         # debugging mode (``NDEBUG=1`` takes precedence over ``DEBUG=1``)
         self.DEBUG = int(os.environ.get("DEBUG", 0)) and \
             not int(os.environ.get("NDEBUG", 0))
