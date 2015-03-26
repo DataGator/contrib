@@ -16,7 +16,7 @@ import jsonschema
 
 from . import environ
 from ._compat import to_native, to_unicode
-from ._entity import Entity
+from ._entity import Entity, validated
 
 
 __all__ = ['DataSet', 'Repo', ]
@@ -32,7 +32,7 @@ class DataSet(Entity):
         self.__name = to_unicode(name)
         self.__repo = repo
         try:
-            self.schema.validate(self.id)
+            Entity.__schema__.validate(self.id)
         except jsonschema.ValidationError:
             raise AssertionError("invalid dataset name")
         pass
@@ -84,7 +84,7 @@ class Repo(Entity):
         super(Repo, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         if credentials is not None:
-            self.service.auth = (self.name, credentials)
+            Entity.__service__.auth = (self.name, credentials)
         pass
 
     @property
@@ -106,13 +106,13 @@ class Repo(Entity):
         try:
             # if `dsname` is not a valid name for a DataSet entity, then it is
             # guaranteed to *not* exist in the storage backend.
-            ds = DataSet(dsname, self)
+            ref = DataSet(dsname, self)
             # looking up `Entity.__cache__` is more preferrable than `ds.cache`
             # because the latter may trigger connection to the backend service
-            if Entity.__cache__.exists(ds.uri):
+            if Entity.__cache__.exists(ref.uri):
                 return True
-            return ds.cache is not None
-        except (AssertionError, ):
+            return ref.cache is not None
+        except (AssertionError, RuntimeError, ):
             return False
         return False  # should NOT reach here
 
@@ -125,31 +125,22 @@ class Repo(Entity):
         raise KeyError("invalid dataset")
 
     def __setitem__(self, dsname, dataset):
-        target = DataSet(dsname, self)
+        ref = None
+        try:
+            ref = DataSet(dsname, self)
+        except (AssertionError, ):
+            raise KeyError("invalid dataset name")
         if isinstance(dataset, (dict, list, tuple)):
             # inspect and serialize content
             pass
         elif not isinstance(dataset, DataSet):
-            raise ValueError("invalid dataset")
-        elif dataset.uri != target.uri:
-            raise ValueError("inconsistent dataset")
+            raise ValueError("invalid dataset value")
+        elif dataset.uri != ref.uri:
+            raise ValueError("inconsistent dataset name and value")
         # create / update dataset
-        response = self.service.put(target.uri, target.id)
-        if response.status_code not in (200, 201):
-            # response body should be a valid JSON object
-            if response.headers['Content-Type'] != "application/json":
-                raise RuntimeError("invalid response from backend service")
-            # response should pass schema validation
-            data = response.json()
-            self.schema.validate(data)
-            msg = "failed to create entity in backend service"
-            if data.get("kind") == "datagator#Error":
-                msg = "{0} ({1}): {2}".format(
-                    msg, data.get("code", "N/A"), data.get("message", ""))
-                raise RuntimeError(msg)
-        else:
+        with validated(Entity.__service__.put(ref.uri, ref.id), (200, 201)):
             # invalidate local cache
-            target.cache = None
+            ref.cache = None
             self.cache = None
         # TODO: commit content
         pass
@@ -158,8 +149,8 @@ class Repo(Entity):
         raise NotImplementedError()
 
     def __iter__(self):
-        for ds in self.cache.get("items", []):
-            yield ds.get("name")
+        for ref in self.cache.get("items", []):
+            yield ref.get("name")
         pass
 
     def __len__(self):

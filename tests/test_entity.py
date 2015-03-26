@@ -67,7 +67,7 @@ class TestRepo(unittest.TestCase):
 
     def test_Repo_init_NonExistence(self):
         r = Repo("NonExistence")
-        self.assertRaises(AssertionError, len, r)
+        self.assertRaises((AssertionError, RuntimeError), len, r)
         pass  # void return
 
     def test_Repo_contains(self):

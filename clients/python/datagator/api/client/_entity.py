@@ -26,22 +26,88 @@ from ._cache import CacheManager
 from ._compat import with_metaclass, to_bytes, to_native, to_unicode
 
 
-__all__ = ['Entity', ]
+__all__ = ['Entity', 'validated', ]
 __all__ = [to_native(n) for n in __all__]
 
 
+class validated(object):
+    """
+    Context manager and proxy to validated response from backend service
+    """
+
+    __slots__ = ['__response', '__expected', '__body', ]
+
+    def __init__(self, response, expected=(200, )):
+        """
+        :param response: response object from the backend service
+        :param exptected: `list` or `tuple` of expected status codes
+        """
+        self.__response = response
+        self.__expected = expected
+        self.__body = None
+        pass
+
+    @property
+    def status_code(self):
+        return self.__response.status_code
+
+    @property
+    def headers(self):
+        return self.__response.headers
+
+    @property
+    def body(self):
+        if self.__body is None:
+            self.__body = self.__response.json()
+        return self.__body
+
+    def __enter__(self):
+        # validate content-type and body data
+        try:
+            # response body should be a valid JSON object
+            assert(self.headers['Content-Type'] == "application/json")
+            data = self.body
+            Entity.__schema__.validate(data)
+        except (jsonschema.ValidationError, AssertionError, ):
+            # re-raise as runtime error
+            raise RuntimeError("invalid response from backend service")
+        else:
+            # validate status code
+            if self.status_code not in self.__expected:
+                # error responses always come with code and message
+                msg = "unexpected response from backend service"
+                if data.get("kind") == "datagator#Error":
+                    msg = "{0} ({1}): {2}".format(
+                        msg, data.get("code", "N/A"), data.get("message", ""))
+                # re-raise as runtime error
+                raise RuntimeError(msg)
+            pass
+        return self
+
+    def __exit__(self, ext_type, exc_value, traceback):
+        return False  # re-raise exception
+
+    pass
+
+
 class EntityType(type):
+    """
+    Meta class for initializing class members of the Entity class
+    """
 
     def __new__(cls, name, parent, prop):
 
-        # initialize singleton backend service shared by all entities
-        repo, sep, key = environ.DATAGATOR_CREDENTIALS.partition(":")
-        auth = (repo, key) if repo and key else None
-        service = DataGatorService(auth=auth)
-        prop['service'] = service
-        prop['schema'] = jsonschema.Draft4Validator(service.schema)
+        # initialize backend service shared by all entities
+        try:
+            repo, sep, key = environ.DATAGATOR_CREDENTIALS.partition(":")
+            auth = (repo, key) if repo and key else None
+            service = DataGatorService(auth=auth)
+            prop['__service__'] = service
+            prop['__schema__'] = jsonschema.Draft4Validator(service.schema)
+        except:
+            raise RuntimeError("failed to initialize backend service")
 
-        # initialize singleton cache manager shared by all entities
+        # initialize cache manager shared by all entities
         try:
             mod, sep, cm_cls = environ.DATAGATOR_CACHE_BACKEND.rpartition(".")
             CacheManagerBackend = getattr(importlib.import_module(mod), cm_cls)
@@ -80,39 +146,24 @@ class Entity(with_metaclass(EntityType, object)):
 
     @property
     def cache(self):
-        data = self.__cache__.get(self.uri, None)
+        data = Entity.__cache__.get(self.uri, None)
         if data is None:
-            response = self.service.get(self.uri)
-            # response body should be a valid JSON object even in case of error
-            if response.headers['Content-Type'] != "application/json":
-                raise AssertionError("invalid response from backend service")
-            # response should pass schema validation
-            data = response.json()
-            try:
-                self.schema.validate(data)
-            except jsonschema.ValidationError:
-                raise AssertionError("invalid response from backend service")
-            # error responses always come with code and message
-            if response.status_code != 200:
-                msg = "failed to load entity from backend service"
-                if data.get("kind") == "datagator#Error":
-                    msg = "{0} ({1}): {2}".format(
-                        msg, data.get("code", "N/A"), data.get("message", ""))
-                raise AssertionError(msg)
-            # valid response should bare a matching entity kind
-            assert(data.get("kind") == "datagator#{0}".format(self.kind)), \
-                "unexpected entity kind '{0}'".format(data.get("kind"))
-            # cache data for reuse
-            if response.headers.get('Cache-Control', None) != "no-cache":
-                self.__cache__.put(self.uri, data)
+            with validated(Entity.__service__.get(self.uri)) as response:
+                data = response.body
+                kind = data.get("kind")
+                # valid response should bare a matching entity kind
+                assert(kind == "datagator#{0}".format(self.kind)), \
+                    "unexpected entity kind '{0}'".format(kind)
+                # cache data for reuse
+                Entity.__cache__.put(self.uri, data)
         return data
 
     @cache.setter
     def cache(self, data):
         if data is not None:
-            self.__cache__.put(self.uri, data)
+            Entity.__cache__.put(self.uri, data)
         else:
-            self.__cache__.delete(self.uri)
+            Entity.__cache__.delete(self.uri)
         pass
 
     @property
