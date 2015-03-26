@@ -17,8 +17,8 @@ import atexit
 import importlib
 import json
 import jsonschema
+import logging
 import os
-import shutil
 
 from . import environ
 from ._backend import DataGatorService
@@ -30,12 +30,15 @@ __all__ = ['Entity', 'validated', ]
 __all__ = [to_native(n) for n in __all__]
 
 
+_log = logging.getLogger(__name__)
+
+
 class validated(object):
     """
     Context manager and proxy to validated response from backend service
     """
 
-    __slots__ = ['__response', '__expected_codes', '__body', ]
+    __slots__ = ['__response', '__expected_status', '__body', ]
 
     def __init__(self, response, verify_code=True):
         """
@@ -43,7 +46,7 @@ class validated(object):
         :param exptected: `list` or `tuple` of expected status codes
         """
         self.__response = response
-        self.__expected_codes = tuple(verify_code) \
+        self.__expected_status = tuple(verify_code) \
             if isinstance(verify_code, (list, tuple)) else (200, ) \
             if verify_code else None
         self.__body = None
@@ -65,6 +68,10 @@ class validated(object):
 
     def __enter__(self):
         # validate content-type and body data
+        _log.debug("validating response")
+        _log.debug("  - from: {0}".format(self.__response.url))
+        _log.debug("  - status code: {0}".format(self.__response.status_code))
+        _log.debug("  - elapsed time: {0}".format(self.__response.elapsed))
         try:
             # response body should be a valid JSON object
             assert(self.headers['Content-Type'] == "application/json")
@@ -75,8 +82,8 @@ class validated(object):
             raise RuntimeError("invalid response from backend service")
         else:
             # validate status code
-            if self.__expected_codes is not None and \
-                    self.status_code not in self.__expected_codes:
+            if self.__expected_status is not None and \
+                    self.status_code not in self.__expected_status:
                 # error responses always come with code and message
                 msg = "unexpected response from backend service"
                 if data.get("kind") == "datagator#Error":

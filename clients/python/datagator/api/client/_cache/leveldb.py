@@ -15,6 +15,7 @@ from __future__ import unicode_literals, with_statement
 import io
 import json
 import logging
+import shutil
 import tempfile
 
 from .._compat import to_native, to_bytes
@@ -47,13 +48,17 @@ class LevelDbCache(CacheManager):
     @property
     def db(self):
         if self.__db is None:
+            _log.debug("initializing local cache")
+            _log.debug("  - '{0}'".format(self.__fs))
             self.__db = _leveldb.LevelDB(filename=to_native(self.__fs))
         return self.__db
 
     def delete(self, key):
+        _log.debug("deleting '{0}'".format(key))
         return self.db.Delete(to_bytes(key))
 
     def exists(self, key):
+        _log.debug("testing '{0}'".format(key))
         try:
             raw = self.db.Get(to_bytes(key))
         except KeyError:
@@ -63,6 +68,7 @@ class LevelDbCache(CacheManager):
         return False  # should NOT reach here
 
     def get(self, key, value=None):
+        _log.debug("fetching '{0}'".format(key))
         try:
             raw = self.db.Get(to_bytes(key))
         except KeyError:
@@ -72,16 +78,19 @@ class LevelDbCache(CacheManager):
         return value  # should NOT reach here
 
     def put(self, key, value):
+        _log.debug("putting '{0}'".format(key))
         return self.db.Put(to_bytes(key), to_bytes(json.dumps(value)))
 
     def __del__(self):
+        _log.debug("destroying local cache")
+        _log.debug(self.db.GetStats())
         try:
             self.__db = None
             _leveldb.DestroyDB(to_native(self.__fs))
-            shutil.rmtree(self.__fs)
+            shutil.rmtree(to_native(self.__fs), ignore_errors=True)
             self.__fs = None
-        except:
-            pass
+        except Exception as e:
+            _log.warning("failed to destroy local cache: {0}".format(e))
         finally:
             self.__db = self.__fs = None
         pass
