@@ -95,6 +95,11 @@ class validated(object):
         return self
 
     def __exit__(self, ext_type, exc_value, traceback):
+        if isinstance(exc_value, Exception):
+            _log.error("failed response validation")
+        else:
+            pass
+
         return False  # re-raise exception
 
     pass

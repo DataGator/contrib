@@ -54,11 +54,11 @@ class LevelDbCache(CacheManager):
         return self.__db
 
     def delete(self, key):
-        _log.debug("deleting '{0}'".format(key))
+        _log.debug("deleting '{0}' from cache".format(key))
         return self.db.Delete(to_bytes(key))
 
     def exists(self, key):
-        _log.debug("testing '{0}'".format(key))
+        _log.debug("looking up '{0}' in cache".format(key))
         try:
             raw = self.db.Get(to_bytes(key))
         except KeyError:
@@ -68,7 +68,7 @@ class LevelDbCache(CacheManager):
         return False  # should NOT reach here
 
     def get(self, key, value=None):
-        _log.debug("fetching '{0}'".format(key))
+        _log.debug("fetching '{0}' from cache".format(key))
         try:
             raw = self.db.Get(to_bytes(key))
         except KeyError:
@@ -78,7 +78,7 @@ class LevelDbCache(CacheManager):
         return value  # should NOT reach here
 
     def put(self, key, value):
-        _log.debug("putting '{0}'".format(key))
+        _log.debug("putting '{0}' to cache".format(key))
         return self.db.Put(to_bytes(key), to_bytes(json.dumps(value)))
 
     def __del__(self):

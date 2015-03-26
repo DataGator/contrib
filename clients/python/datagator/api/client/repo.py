@@ -126,7 +126,7 @@ class Repo(Entity):
                 return DataSet(dsname, self)
         except (AssertionError, ):
             pass
-        raise KeyError("invalid dataset")
+        raise KeyError("invalid dataset '{0}'".format(dsname))
 
     def __setitem__(self, dsname, items):
         ref = None
