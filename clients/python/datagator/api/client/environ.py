@@ -34,7 +34,7 @@ class EnvironModule(types.ModuleType):
         'DEBUG', ]]
 
     # version tuple of the pythonic HTTP client library
-    __client_version__ = (0, 1, 1)
+    __client_version__ = (0, 1, 2)
 
     __slots__ = ["DATAGATOR_API_ACCEPT_ENCODING",
                  "DATAGATOR_API_FOLLOW_REDIRECT",

@@ -15,10 +15,12 @@ from __future__ import unicode_literals, with_statement
 import abc
 import atexit
 import importlib
+import io
 import json
 import jsonschema
 import logging
 import os
+import tempfile
 
 from . import environ
 from ._backend import DataGatorService
@@ -38,7 +40,7 @@ class validated(object):
     Context manager and proxy to validated response from backend service
     """
 
-    __slots__ = ['__response', '__expected_status', '__body', ]
+    __slots__ = ['__response', '__expected_status', '__body', '__size', ]
 
     def __init__(self, response, verify_code=True):
         """
@@ -50,6 +52,7 @@ class validated(object):
             if isinstance(verify_code, (list, tuple)) else (200, ) \
             if verify_code else None
         self.__body = None
+        self.__size = 0
         pass
 
     @property
@@ -62,22 +65,47 @@ class validated(object):
 
     @property
     def body(self):
-        if self.__body is None:
-            self.__body = self.__response.json()
         return self.__body
+
+    def __len__(self):
+        return self.__size
 
     def __enter__(self):
         # validate content-type and body data
         _log.debug("validating response")
         _log.debug("  - from: {0}".format(self.__response.url))
         _log.debug("  - status code: {0}".format(self.__response.status_code))
-        _log.debug("  - elapsed time: {0}".format(self.__response.elapsed))
+        _log.debug("  - response time: {0}".format(self.__response.elapsed))
         try:
             # response body should be a valid JSON object
             assert(self.headers['Content-Type'] == "application/json")
-            data = self.body
+            data = None
+            chunk_size = 2 ** 16
+            decoded_size = 0
+            with tempfile.SpooledTemporaryFile(
+                    max_size=chunk_size, mode="w+b",
+                    suffix=".DataGatorEntity") as f:
+                # make sure f conforms to the prototype of IOBase
+                for attr in ("readable", "writable", "seekable"):
+                    if not hasattr(f, attr):
+                        setattr(f, attr, lambda: True)
+                # wrie decoded response body
+                for chunk in self.__response.iter_content(
+                        chunk_size=chunk_size, decode_unicode=True):
+                    if not chunk:
+                        continue
+                    f.write(chunk)
+                    decoded_size += len(chunk)
+                _log.debug("  - decoded size: {0}".format(decoded_size))
+                self.__size = decoded_size
+                # py3k cannot `json.load()` binary files directly, it needs a
+                # text IO wrapper to handle decoding (to unicode / str)
+                f.seek(0)
+                data = json.load(io.TextIOWrapper(f))
+                f.close()
             Entity.__schema__.validate(data)
-        except (jsonschema.ValidationError, AssertionError, ):
+            self.__body = data
+        except (jsonschema.ValidationError, AssertionError, IOError, ):
             # re-raise as runtime error
             raise RuntimeError("invalid response from backend service")
         else:
@@ -99,7 +127,6 @@ class validated(object):
             _log.error("failed response validation")
         else:
             pass
-
         return False  # re-raise exception
 
     pass
@@ -178,8 +205,8 @@ class Entity(with_metaclass(EntityType, object)):
     def cache(self):
         data = Entity.__cache__.get(self.uri, None)
         if data is None:
-            with validated(Entity.__service__.get(self.uri)) as response:
-                data = response.body
+            with validated(Entity.__service__.get(self.uri, stream=True)) as r:
+                data = r.body
                 kind = data.get("kind")
                 # valid response should bare a matching entity kind
                 assert(kind == "datagator#{0}".format(self.kind)), \

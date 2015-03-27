@@ -127,7 +127,8 @@ class DataGatorService(object):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
         :param headers: extra HTTP headers to be sent with request.
-        :param stream: number of seconds to wait.
+        :param stream: enable streamed access to response body.
+        :param timeout: connection timeout in seconds.
         :returns: HTTP response object.
         """
         r = self.http.request(
