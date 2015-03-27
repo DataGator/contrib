@@ -122,16 +122,20 @@ class DataGatorService(object):
             headers=headers)
         return r
 
-    def get(self, path, headers={}):
+    def get(self, path, headers={}, stream=False,
+            timeout=environ.DATAGATOR_API_TIMEOUT):
         """
         :param path: relative url w.r.t. ``DATAGATOR_API_URL``.
         :param headers: extra HTTP headers to be sent with request.
+        :param stream: number of seconds to wait.
         :returns: HTTP response object.
         """
         r = self.http.request(
             method="GET",
             url=safe_url(path),
-            headers=headers)
+            headers=headers,
+            stream=stream,
+            timeout=timeout)
         return r
 
     def head(self, path, headers={}):
