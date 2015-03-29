@@ -32,8 +32,8 @@ _log = logging.getLogger(__name__)
 
 class DataSetRevision(object):
 
-    MAX_PAYLOAD_SIZE = 2 ** 26
-    MAX_BUFFER_SIZE = 2 ** 16
+    MAX_PAYLOAD_SIZE = 2 ** 24  # 16 MB
+    MAX_BUFFER_SIZE = 2 ** 16   # 64 kB
 
     __slots__ = ['__uri', '__tmp', '__len', ]
 
