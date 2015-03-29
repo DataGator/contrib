@@ -99,9 +99,11 @@ class DataSetRevision(object):
         pass
 
     def __setitem__(self, key, value):
-        _log.debug("  - '{0}'".format(key))
+        _log.debug("appending to revision")
         key = json.dumps(key)
         value = value.read() if hasattr(value, "read") else json.dumps(value)
+        _log.debug("  - key: {0}".format(key))
+        _log.debug("  - size: {0}".format(len(value)))
         if len(self):
             self.__tmp.write(to_bytes(", "))
         self.__tmp.write(to_bytes(key))
@@ -191,7 +193,6 @@ class DataSet(Entity):
 
     def __setitem__(self, key, value):
         with self.__committer as c:
-            _log.debug("appending to revision")
             c[key] = value
         self.cache = None
         pass
@@ -205,7 +206,6 @@ class DataSet(Entity):
         if isinstance(items, dict):
             items = items.items()
         with self.__committer as c:
-            _log.debug("appending to revision")
             for key, value in items:
                 c[key] = value
         self.cache = None
