@@ -39,17 +39,19 @@ class DataSetRevision(object):
 
     def __init__(self, uri):
         self.__uri = uri
+        super(DataSetRevision, self).__init__()
         self.__tmp = None
         self.__len = 0
-        super(DataSetRevision, self).__init__()
+        self._rewind()
         pass
 
     def _rewind(self):
-        if self.__tmp is not None:
-            _log.debug("discarding old revision")
-            self.__tmp.close()
-            self.__tmp = None
-            self.__len = 0
+        if len(self) > 0:
+            raise AssertionError("cannot rewind a pending revision")
+        elif self.__tmp is not None:
+            _log.debug("attempting to rewind an empty revision")
+            # which is unnecessary, thus the short-cut return
+            return
         _log.debug("creating new revision for '{0}'".format(self.__uri))
         f = tempfile.SpooledTemporaryFile(
             max_size=DataSetRevision.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
@@ -57,13 +59,17 @@ class DataSetRevision(object):
             if not hasattr(f, attr):
                 setattr(f, attr, lambda: True)
         self.__tmp = f
-        self.__tmp.write(to_bytes("{"))
         self.__len = 0
+        self.__tmp.write(to_bytes("{"))
         pass
 
     def _commit(self):
-        if not len(self):
+        if len(self) == 0:
+            _log.debug("attempting to commit an empty revision")
+            # which is unnecessary, thus the short-cut return
             return
+        elif self.__tmp is None:
+            raise AssertionError("cannot commit an uninitialized revision")
         self.__tmp.write(to_bytes("}"))
         self.__tmp.flush()
         _log.debug("committing revision")
@@ -84,7 +90,11 @@ class DataSetRevision(object):
         except Exception as e:
             _log.error(e)
             raise
-        finally:
+        else:
+            # prepare for consecutive revisions
+            self.__tmp.close()
+            self.__tmp = None
+            self.__len = 0
             self._rewind()
         pass
 
@@ -118,7 +128,9 @@ class DataSetRevision(object):
 
     def __del__(self):
         try:
-            self._commit()
+            if len(self) > 0:
+                _log.warning("pending revision left until garbage collection")
+                self._commit()
         except:
             _log.error("failed to commit pending revisions")
             raise
