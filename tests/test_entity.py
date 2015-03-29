@@ -13,6 +13,7 @@
 
 from __future__ import unicode_literals
 
+import io
 import json
 import jsonschema
 import logging
@@ -86,8 +87,18 @@ class TestRepo(unittest.TestCase):
         pass  # void return
 
     def test_Repo_item(self):
+        revision = {
+            "UN": json.loads(to_unicode(
+                load_data(os.path.join("json", "IGO_Members", "UN.json")))),
+            "WTO": json.loads(to_unicode(
+                load_data(os.path.join("json", "IGO_Members", "WTO.json")))),
+            "IMF": io.BytesIO(to_bytes(
+                load_data(os.path.join("json", "IGO_Members", "IMF.json")))),
+            "OPEC": io.BytesIO(to_bytes(
+                load_data(os.path.join("json", "IGO_Members", "OPEC.json")))),
+        }
         repo = Repo(self.repo, self.secret)
-        repo['IGO_Members'] = []
+        repo['IGO_Members'] = revision
         self.assertIsInstance(repo['IGO_Members'], DataSet)
         self.assertTrue(repo['IGO_Members'].cache is not None)
         pass  # void return

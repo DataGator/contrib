@@ -12,6 +12,7 @@
 
 from __future__ import unicode_literals, with_statement
 
+import io
 import json
 import logging
 import os
@@ -46,6 +47,12 @@ def safe_url(path):
 
     # finalize url
     return "{0}/{1}".format(environ.DATAGATOR_API_URL, request_uri)
+
+
+def make_payload(data):
+    if hasattr(data, "read"):
+        return data
+    return to_bytes(json.dumps(data))
 
 
 class DataGatorService(object):
@@ -161,7 +168,7 @@ class DataGatorService(object):
         r = self.http.request(
             method="PATCH",
             url=safe_url(path),
-            data=to_bytes(json.dumps(data)),
+            data=make_payload(data),
             auth=self.__auth,
             headers=headers)
         return r
@@ -178,12 +185,13 @@ class DataGatorService(object):
         if files:
             headers.setdefault({'Content-Type': "multipart/form-data"})
         else:
-            data = to_bytes(json.dumps(data))
+            data = make_payload(data)
 
         r = self.http.request(
             method="POST",
             url=safe_url(path),
             data=data,
+            files=files,
             auth=self.__auth,
             headers=headers)
         return r
@@ -198,7 +206,7 @@ class DataGatorService(object):
         r = self.http.request(
             method="PUT",
             url=safe_url(path),
-            data=to_bytes(json.dumps(data)),
+            data=make_payload(data),
             auth=self.__auth,
             headers=headers)
         return r

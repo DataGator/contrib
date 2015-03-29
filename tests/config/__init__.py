@@ -42,12 +42,17 @@ def to_unicode(*args, **kwds):
     return _compat.to_unicode(*args, **kwds)
 
 
+def to_bytes(*args, **kwds):
+    from datagator.api.client import _compat
+    return _compat.to_bytes(*args, **kwds)
+
+
 def environ(name):
     from datagator.api.client import environ
     return getattr(environ, name)
 
 
-__all__ = ['unittest', 'load_data', 'to_native', 'to_unicode',
+__all__ = ['unittest', 'load_data', 'to_native', 'to_unicode', 'to_bytes',
            'get_credentials', ]
 __all__ = [to_native(n) for n in __all__]
 

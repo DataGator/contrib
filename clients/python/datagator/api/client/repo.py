@@ -12,10 +12,14 @@
 
 from __future__ import unicode_literals, with_statement
 
+import io
+import json
 import jsonschema
+import logging
+import tempfile
 
 from . import environ
-from ._compat import to_native, to_unicode
+from ._compat import to_native, to_unicode, to_bytes
 from ._entity import Entity, validated
 
 
@@ -23,14 +27,110 @@ __all__ = ['DataSet', 'Repo', ]
 __all__ = [to_native(n) for n in __all__]
 
 
+_log = logging.getLogger(__name__)
+
+
+class DataSetRevision(object):
+
+    MAX_PAYLOAD_SIZE = 2 ** 26
+    MAX_BUFFER_SIZE = 2 ** 16
+
+    __slots__ = ['__uri', '__tmp', '__request', '__len', ]
+
+    def __init__(self, uri):
+        self.__uri = uri
+        self.__tmp = None
+        method = "put" if environ.DATAGATOR_API_VERSION == "v1" else "patch"
+        self.__request = getattr(Entity.__service__, method)
+        super(DataSetRevision, self).__init__()
+        self._rewind()
+        pass
+
+    def _rewind(self):
+        if self.__tmp is not None:
+            _log.debug("discarding old revision")
+            self.__tmp.close()
+            self.__tmp = None
+        _log.debug("allocating new revision for '{0}'".format(self.__uri))
+        f = tempfile.SpooledTemporaryFile(
+            max_size=DataSetRevision.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
+        for attr in ("readable", "writable", "seekable"):
+            if not hasattr(f, attr):
+                setattr(f, attr, lambda: True)
+        self.__tmp = f
+        self.__tmp.write(to_bytes("{"))
+        self.__len = 0
+        pass
+
+    def _commit(self):
+        if not len(self):
+            return
+        self.__tmp.write(to_bytes("}"))
+        self.__tmp.flush()
+        _log.debug("committing revision")
+        _log.debug("  - entries count: {0}".format(len(self)))
+        _log.debug("  - payload size: {0}".format(self.__tmp.tell()))
+        try:
+            self.__tmp.seek(0)
+            with validated(self.__request(
+                    self.__uri, data=self.__tmp), (202, )) as r:
+                pass
+        except Exception as e:
+            _log.error(e)
+            raise
+        finally:
+            self._rewind()
+        pass
+
+    def __setitem__(self, key, value):
+        _log.debug("appending to revision")
+        key = json.dumps(key)
+        value = value.read() if hasattr(value, "read") else json.dumps(value)
+        _log.debug("  - key: {0}".format(key))
+        _log.debug("  - size: {0}".format(len(value)))
+        if self.__tmp.tell() > 1:
+            self.__tmp.write(to_bytes(", "))
+        self.__tmp.write(to_bytes(key))
+        self.__tmp.write(to_bytes(": "))
+        self.__tmp.write(to_bytes(value))
+        self.__len += 1
+        if self.__tmp.tell() < DataSetRevision.MAX_PAYLOAD_SIZE:
+            return
+        self._commit()
+
+    def __len__(self):
+        return self.__len
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, ext_type, exc_value, traceback):
+        if isinstance(exc_value, Exception):
+            pass
+        else:
+            self._commit()
+        return False  # re-raise exception
+
+    def __del__(self):
+        try:
+            self._commit()
+        except:
+            _log.error("failed to commit pending revisions")
+            raise
+        pass
+
+    pass
+
+
 class DataSet(Entity):
 
-    __slots__ = ['__name', '__repo', ]
+    __slots__ = ['__name', '__repo', '__committer', ]
 
     def __init__(self, name, repo):
         super(DataSet, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         self.__repo = repo
+        self.__committer = DataSetRevision(self.uri)
         try:
             # the data set may not have been committed to the backend service
             # so we just verify the identifier is valid by the schema
@@ -70,6 +170,26 @@ class DataSet(Entity):
     def __iter__(self):
         for item in self.cache.get("items", []):
             yield item.get("name")
+        pass
+
+    def __setitem__(self, key, value):
+        with self.__committer as c:
+            c[key] = value
+        self.cache = None
+        pass
+
+    def __delitem__(self, key):
+        with self.__committer as c:
+            c[key] = None
+        self.cache = None
+
+    def update(self, items):
+        if isinstance(items, dict):
+            items = items.items()
+        with self.__committer as c:
+            for key, value in items:
+                c[key] = value
+        self.cache = None
         pass
 
     def __len__(self):
@@ -135,7 +255,6 @@ class Repo(Entity):
         except (AssertionError, ):
             raise KeyError("invalid dataset name")
         if isinstance(items, (dict, list, tuple)):
-            # inspect and serialize content
             pass
         elif not isinstance(items, DataSet):
             raise ValueError("invalid dataset value")
@@ -146,7 +265,7 @@ class Repo(Entity):
             # invalidate local cache
             ref.cache = None
             self.cache = None
-        # TODO: commit content
+        ref.update(items)
         pass
 
     def __delitem__(self, dsname):
