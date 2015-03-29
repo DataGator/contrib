@@ -81,7 +81,6 @@ class validated(object):
             assert(self.headers['Content-Type'] == "application/json")
             data = None
             chunk_size = 2 ** 16
-            decoded_size = 0
             with tempfile.SpooledTemporaryFile(
                     max_size=chunk_size, mode="w+b",
                     suffix=".DataGatorEntity") as f:
@@ -95,9 +94,8 @@ class validated(object):
                     if not chunk:
                         continue
                     f.write(chunk)
-                    decoded_size += len(chunk)
-                _log.debug("  - decoded size: {0}".format(decoded_size))
-                self.__size = decoded_size
+                self.__size = f.tell()
+                _log.debug("  - decoded size: {0}".format(len(self)))
                 # py3k cannot `json.load()` binary files directly, it needs a
                 # text IO wrapper to handle decoding (to unicode / str)
                 f.seek(0)
