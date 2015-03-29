@@ -52,7 +52,6 @@ class TestRepo(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        environ.DATAGATOR_API_VERSION = "v2"
         cls.repo, cls.secret = get_credentials()
         pass  # void return
 
@@ -88,13 +87,10 @@ class TestRepo(unittest.TestCase):
 
     def test_Repo_item(self):
         revision = {
-            "UN": json.loads(to_unicode(
-                load_data(os.path.join("json", "IGO_Members", "UN.json")))),
-            "WTO": json.loads(to_unicode(
-                load_data(os.path.join("json", "IGO_Members", "WTO.json")))),
-            "IMF": io.BytesIO(to_bytes(
-                load_data(os.path.join("json", "IGO_Members", "IMF.json")))),
-            "OPEC": io.BytesIO(to_bytes(
+            "UN": open_data(os.path.join("json", "IGO_Members", "UN.json")),
+            "WTO": open_data(os.path.join("json", "IGO_Members", "WTO.json")),
+            "IMF": open_data(os.path.join("json", "IGO_Members", "IMF.json")),
+            "OPEC": json.loads(to_unicode(
                 load_data(os.path.join("json", "IGO_Members", "OPEC.json")))),
         }
         repo = Repo(self.repo, self.secret)

@@ -35,15 +35,13 @@ class DataSetRevision(object):
     MAX_PAYLOAD_SIZE = 2 ** 26
     MAX_BUFFER_SIZE = 2 ** 16
 
-    __slots__ = ['__uri', '__tmp', '__request', '__len', ]
+    __slots__ = ['__uri', '__tmp', '__len', ]
 
     def __init__(self, uri):
         self.__uri = uri
         self.__tmp = None
-        method = "put" if environ.DATAGATOR_API_VERSION == "v1" else "patch"
-        self.__request = getattr(Entity.__service__, method)
+        self.__len = 0
         super(DataSetRevision, self).__init__()
-        self._rewind()
         pass
 
     def _rewind(self):
@@ -51,7 +49,8 @@ class DataSetRevision(object):
             _log.debug("discarding old revision")
             self.__tmp.close()
             self.__tmp = None
-        _log.debug("allocating new revision for '{0}'".format(self.__uri))
+            self.__len = 0
+        _log.debug("creating new revision for '{0}'".format(self.__uri))
         f = tempfile.SpooledTemporaryFile(
             max_size=DataSetRevision.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
         for attr in ("readable", "writable", "seekable"):
@@ -72,9 +71,16 @@ class DataSetRevision(object):
         _log.debug("  - payload size: {0}".format(self.__tmp.tell()))
         try:
             self.__tmp.seek(0)
-            with validated(self.__request(
-                    self.__uri, data=self.__tmp), (202, )) as r:
-                pass
+            if environ.DATAGATOR_API_VERSION == "v1":
+                with validated(Entity.__service__.put(
+                        self.__uri, data=self.__tmp), (202, )) as r:
+                    # TODO watch task for completion
+                    pass
+            else:
+                with validated(Entity.__service__.patch(
+                        self.__uri, data=self.__tmp), (202, )) as r:
+                    # TODO watch task for completion
+                    pass
         except Exception as e:
             _log.error(e)
             raise
@@ -83,12 +89,10 @@ class DataSetRevision(object):
         pass
 
     def __setitem__(self, key, value):
-        _log.debug("appending to revision")
+        _log.debug("  - '{0}'".format(key))
         key = json.dumps(key)
         value = value.read() if hasattr(value, "read") else json.dumps(value)
-        _log.debug("  - key: {0}".format(key))
-        _log.debug("  - size: {0}".format(len(value)))
-        if self.__tmp.tell() > 1:
+        if len(self):
             self.__tmp.write(to_bytes(", "))
         self.__tmp.write(to_bytes(key))
         self.__tmp.write(to_bytes(": "))
@@ -102,6 +106,7 @@ class DataSetRevision(object):
         return self.__len
 
     def __enter__(self):
+        self._rewind()
         return self
 
     def __exit__(self, ext_type, exc_value, traceback):
@@ -174,6 +179,7 @@ class DataSet(Entity):
 
     def __setitem__(self, key, value):
         with self.__committer as c:
+            _log.debug("appending to revision")
             c[key] = value
         self.cache = None
         pass
@@ -187,6 +193,7 @@ class DataSet(Entity):
         if isinstance(items, dict):
             items = items.items()
         with self.__committer as c:
+            _log.debug("appending to revision")
             for key, value in items:
                 c[key] = value
         self.cache = None
@@ -254,17 +261,29 @@ class Repo(Entity):
             ref = DataSet(dsname, self)
         except (AssertionError, ):
             raise KeyError("invalid dataset name")
+        # inspect input parameters
         if isinstance(items, (dict, list, tuple)):
+            # we expect the items to be either a `dict` of {`key`: `DataItem`}
+            # or a sequence of pairs (`key`, `DataItem`), where `DataItem` can
+            # be (i) a file-like object with serialized JSON content, or (ii) a
+            # JSON-serializable `DataItem` object.
             pass
-        elif not isinstance(items, DataSet):
-            raise ValueError("invalid dataset value")
-        elif items.uri != ref.uri:
-            raise ValueError("inconsistent dataset name and value")
+        else:
+            raise ValueError("invalid data set items")
         # create / update dataset
-        with validated(Entity.__service__.put(ref.uri, ref.ref), (200, 201)):
-            # invalidate local cache
-            ref.cache = None
-            self.cache = None
+        if environ.DATAGATOR_API_VERSION == "v1":
+            with validated(Entity.__service__.put(self.uri, ref.ref), (202, )):
+                # TODO watch task for completion
+                pass
+        else:
+            with validated(
+                    Entity.__service__.put(ref.uri, ref.ref), (200, 201)):
+                # since v2, data set creation / update is a synchronized
+                # operation, no task will be created whatsoever
+                pass
+        # invalidate local cache
+        ref.cache = None
+        self.cache = None
         ref.update(items)
         pass
 

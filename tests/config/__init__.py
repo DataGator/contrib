@@ -52,8 +52,8 @@ def environ(name):
     return getattr(environ, name)
 
 
-__all__ = ['unittest', 'load_data', 'to_native', 'to_unicode', 'to_bytes',
-           'get_credentials', ]
+__all__ = ['unittest', 'open_data', 'load_data', 'to_native', 'to_unicode',
+           'to_bytes', 'get_credentials', ]
 __all__ = [to_native(n) for n in __all__]
 
 
@@ -96,12 +96,16 @@ def get_credentials(user_input=True, prompt="DataGator credentials: "):
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 
 
+def open_data(name):
+    return open(os.path.join(DATA_DIR, name), 'rb')
+
+
 def load_data(name):
     """
     Load text resource from package data.
     """
     content = None
-    with open(os.path.join(DATA_DIR, name), 'rb') as f:
+    with open_data(name) as f:
         content = f.read()
         f.close()
     return content
