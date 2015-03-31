@@ -30,16 +30,18 @@ __all__ = [to_native(n) for n in __all__]
 _log = logging.getLogger(__name__)
 
 
-class DataSetRevision(object):
+class ChangeSet(object):
 
     MAX_PAYLOAD_SIZE = 2 ** 24  # 16 MB
     MAX_BUFFER_SIZE = 2 ** 16   # 64 kB
 
     __slots__ = ['__uri', '__tmp', '__cnt', ]
 
-    def __init__(self, uri):
-        self.__uri = uri
-        super(DataSetRevision, self).__init__()
+    def __init__(self, dataset):
+        if not isinstance(dataset, DataSet):
+            raise TypeError("invalid dataset")
+        self.__uri = dataset.uri
+        super(ChangeSet, self).__init__()
         self.__tmp = None
         self.__cnt = 0
         self._rewind()
@@ -62,7 +64,7 @@ class DataSetRevision(object):
             return
         _log.debug("creating new revision for '{0}'".format(self.__uri))
         self.__tmp = tempfile.SpooledTemporaryFile(
-            max_size=DataSetRevision.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
+            max_size=ChangeSet.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
         self.__cnt = 0
         self.__tmp.write(to_bytes("{"))
         pass
@@ -116,7 +118,7 @@ class DataSetRevision(object):
         f.write(to_bytes(": "))
         f.write(to_bytes(value))
         self.__cnt += 1
-        if f.tell() < DataSetRevision.MAX_PAYLOAD_SIZE:
+        if f.tell() < ChangeSet.MAX_PAYLOAD_SIZE:
             return
         self._commit()
 
@@ -149,13 +151,13 @@ class DataSetRevision(object):
 
 class DataSet(Entity):
 
-    __slots__ = ['__name', '__repo', '__committer', ]
+    __slots__ = ['__name', '__repo', '__writer', ]
 
     def __init__(self, name, repo):
         super(DataSet, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         self.__repo = repo
-        self.__committer = None
+        self.__writer = None
         try:
             # the data set may not have been committed to the backend service
             # so we just verify the identifier is valid by the schema
@@ -193,13 +195,13 @@ class DataSet(Entity):
         return content.get("rev", 0)
 
     def __enter__(self):
-        if self.__committer is None:
-            self.__committer = DataSetRevision(self.uri)
-        return self.__committer.__enter__()
+        if self.__writer is None:
+            self.__writer = ChangeSet(self)
+        return self.__writer.__enter__()
 
     def __exit__(self, ext_type, exc_value, traceback):
-        assert(self.__committer is not None), "committer not initialized"
-        res = self.__committer.__exit__(ext_type, exc_value, traceback)
+        assert(self.__writer is not None), "committer not initialized"
+        res = self.__writer.__exit__(ext_type, exc_value, traceback)
         self.cache = None
         self.repo.cache = None
         return res
