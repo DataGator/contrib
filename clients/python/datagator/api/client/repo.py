@@ -35,14 +35,22 @@ class DataSetRevision(object):
     MAX_PAYLOAD_SIZE = 2 ** 24  # 16 MB
     MAX_BUFFER_SIZE = 2 ** 16   # 64 kB
 
-    __slots__ = ['__uri', '__tmp', '__len', ]
+    __slots__ = ['__uri', '__tmp', '__cnt', ]
 
     def __init__(self, uri):
         self.__uri = uri
         super(DataSetRevision, self).__init__()
         self.__tmp = None
-        self.__len = 0
+        self.__cnt = 0
         self._rewind()
+        pass
+
+    def commit(self):
+        """
+        commit all pending revisions to the backend service
+        """
+        if len(self) > 0 and self.__tmp is not None:
+            self._commit()
         pass
 
     def _rewind(self):
@@ -53,13 +61,9 @@ class DataSetRevision(object):
             # which is unnecessary, thus the short-cut return
             return
         _log.debug("creating new revision for '{0}'".format(self.__uri))
-        f = tempfile.SpooledTemporaryFile(
+        self.__tmp = tempfile.SpooledTemporaryFile(
             max_size=DataSetRevision.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
-        for attr in ("readable", "writable", "seekable"):
-            if not hasattr(f, attr):
-                setattr(f, attr, lambda: True)
-        self.__tmp = f
-        self.__len = 0
+        self.__cnt = 0
         self.__tmp.write(to_bytes("{"))
         pass
 
@@ -94,7 +98,7 @@ class DataSetRevision(object):
             # prepare for consecutive revisions
             self.__tmp.close()
             self.__tmp = None
-            self.__len = 0
+            self.__cnt = 0
             self._rewind()
         pass
 
@@ -104,18 +108,20 @@ class DataSetRevision(object):
         value = value.read() if hasattr(value, "read") else json.dumps(value)
         _log.debug("  - key: {0}".format(key))
         _log.debug("  - size: {0}".format(len(value)))
+        # write serialized value to temporary file
+        f = self.__tmp
         if len(self):
-            self.__tmp.write(to_bytes(", "))
-        self.__tmp.write(to_bytes(key))
-        self.__tmp.write(to_bytes(": "))
-        self.__tmp.write(to_bytes(value))
-        self.__len += 1
-        if self.__tmp.tell() < DataSetRevision.MAX_PAYLOAD_SIZE:
+            f.write(to_bytes(", "))
+        f.write(to_bytes(key))
+        f.write(to_bytes(": "))
+        f.write(to_bytes(value))
+        self.__cnt += 1
+        if f.tell() < DataSetRevision.MAX_PAYLOAD_SIZE:
             return
         self._commit()
 
     def __len__(self):
-        return self.__len
+        return self.__cnt
 
     def __enter__(self):
         self._rewind()
@@ -149,7 +155,7 @@ class DataSet(Entity):
         super(DataSet, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         self.__repo = repo
-        self.__committer = DataSetRevision(self.uri)
+        self.__committer = None
         try:
             # the data set may not have been committed to the backend service
             # so we just verify the identifier is valid by the schema
@@ -186,32 +192,50 @@ class DataSet(Entity):
             content = self.cache
         return content.get("rev", 0)
 
+    def __enter__(self):
+        if self.__committer is None:
+            self.__committer = DataSetRevision(self.uri)
+        return self.__committer.__enter__()
+
+    def __exit__(self, ext_type, exc_value, traceback):
+        assert(self.__committer is not None), "committer not initialized"
+        res = self.__committer.__exit__(ext_type, exc_value, traceback)
+        self.cache = None
+        self.repo.cache = None
+        return res
+
     def __iter__(self):
         for item in self.cache.get("items", []):
             yield item.get("name")
         pass
 
     def __setitem__(self, key, value):
-        with self.__committer as c:
+        with self as c:
             c[key] = value
-        self.cache = None
         pass
 
     def __delitem__(self, key):
-        with self.__committer as c:
+        with self as c:
             c[key] = None
-        self.cache = None
-
-    def update(self, items):
-        if isinstance(items, dict):
-            items = items.items()
-        with self.__committer as c:
-            for key, value in items:
-                c[key] = value
-        self.cache = None
         pass
 
-    def __len__(self):
+    def patch(self, items):
+        """
+        :param items: `dict` or sequence of key-value pairs, representing
+            create / update / delete operations to be committed.
+        """
+        if not isinstance(items, dict):
+            items = dict(items)
+        with self as c:
+            for key, value in items.items():
+                c[key] = value
+        pass
+
+    def clear(self):
+        self.patch([(key, None) for key in self])
+        pass
+
+    def __cnt__(self):
         return self.cache.get("itemsCount", 0)
 
     pass
@@ -273,15 +297,6 @@ class Repo(Entity):
             ref = DataSet(dsname, self)
         except (AssertionError, ):
             raise KeyError("invalid dataset name")
-        # inspect input parameters
-        if isinstance(items, (dict, list, tuple)):
-            # we expect the items to be either a `dict` of {`key`: `DataItem`}
-            # or a sequence of pairs (`key`, `DataItem`), where `DataItem` can
-            # be (i) a file-like object with serialized JSON content, or (ii) a
-            # JSON-serializable `DataItem` object.
-            pass
-        else:
-            raise ValueError("invalid data set items")
         # create / update dataset
         if environ.DATAGATOR_API_VERSION == "v1":
             with validated(Entity.__service__.put(self.uri, ref.ref), (202, )):
@@ -293,10 +308,9 @@ class Repo(Entity):
                 # since v2, data set creation / update is a synchronized
                 # operation, no task will be created whatsoever
                 pass
-        # invalidate local cache
-        ref.cache = None
-        self.cache = None
-        ref.update(items)
+        # commit revision(s) with the new items. `ref.patch()` will also
+        # invalidate local cache for both the repo and the referenced dataset.
+        ref.patch(items)
         pass
 
     def __delitem__(self, dsname):
