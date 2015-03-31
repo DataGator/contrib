@@ -219,24 +219,24 @@ class DataSet(Entity):
             c[key] = None
         pass
 
-    def patch(self, items):
+    def __len__(self):
+        return self.cache.get("itemsCount", 0)
+
+    def patch(self, changes):
         """
         :param items: `dict` or sequence of key-value pairs, representing
             create / update / delete operations to be committed.
         """
-        if not isinstance(items, dict):
-            items = dict(items)
+        if not isinstance(changes, dict):
+            changes = dict(changes)
         with self as c:
-            for key, value in items.items():
+            for key, value in changes.items():
                 c[key] = value
         pass
 
     def clear(self):
         self.patch([(key, None) for key in self])
         pass
-
-    def __cnt__(self):
-        return self.cache.get("itemsCount", 0)
 
     pass
 
