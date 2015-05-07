@@ -210,7 +210,8 @@ class Entity(with_metaclass(EntityType, object)):
                 assert(kind == "datagator#{0}".format(self.kind)), \
                     "unexpected entity kind '{0}'".format(kind)
                 # cache data for reuse
-                Entity.__cache__.put(self.uri, data)
+                if r.headers.get("Cache-Control", "private") != "no-cache":
+                    Entity.__cache__.put(self.uri, data)
         return data
 
     @cache.setter

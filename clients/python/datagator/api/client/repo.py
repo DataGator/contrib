@@ -151,32 +151,53 @@ class ChangeSet(object):
 
 class DataSet(Entity):
 
-    __slots__ = ['__name', '__repo', '__writer', ]
+    __slots__ = ['__name', '__repo', '__rev', '__writer', ]
 
-    def __init__(self, name, repo):
+    def __init__(self, name, repo, rev=None):
         super(DataSet, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         self.__repo = repo
+        self.__rev = rev if rev != -1 else None
         self.__writer = None
-        try:
-            # the data set may not have been committed to the backend service
-            # so we just verify the identifier is valid by the schema
-            Entity.__schema__.validate(self.ref)
-        except jsonschema.ValidationError:
-            raise AssertionError("invalid dataset name")
+        # when `rev` is `None`, the dataset may not exist in the backend
+        # service (i.e. we are creating a new dataset).
+        if rev is None:
+            # validate the name locally against the schema
+            try:
+                Entity.__schema__.validate(self.ref)
+            except jsonschema.ValidationError:
+                raise AssertionError("invalid dataset name")
+        # when `rev` is not `None`, the dataset is assumed to exist in the
+        # backend service (i.e. we are pulling remote data for use).
+        else:
+            # when `rev` is -1, we always invalidate the cached dataset, and
+            # pull the remote revision from the backend service.
+            if rev == -1:
+                self.cache = None
+            content = self.cache
+            assert(content is not None), "no such revision '{0}'".format(rev)
+            remote_rev = content.get("rev", None)
+            assert(rev == remote_rev or rev == -1), \
+                "inconsistent revision '{0}' != '{1}'".format(remote_rev, rev)
+            self.__rev = remote_rev
         pass
 
     @property
     def uri(self):
-        return "{0}/{1}".format(self.repo.name, self.name)
+        return "{0}/{1}{2}".format(
+            self.repo.name, self.name,
+            ".{0}".format(self.rev) if self.rev is not None else "")
 
     @property
     def ref(self):
-        return dict([
+        obj = dict([
             ("kind", "datagator#DataSet"),
             ("name", self.name),
             ("repo", self.repo.ref),
         ])
+        if self.rev is not None:
+            obj['rev'] = self.rev
+        return obj
 
     @property
     def name(self):
@@ -188,11 +209,7 @@ class DataSet(Entity):
 
     @property
     def rev(self):
-        content = self.cache
-        if "rev" not in content:
-            self.cache = None
-            content = self.cache
-        return content.get("rev", 0)
+        return self.__rev
 
     def __enter__(self):
         if self.__writer is None:
@@ -204,6 +221,8 @@ class DataSet(Entity):
         res = self.__writer.__exit__(ext_type, exc_value, traceback)
         self.cache = None
         self.repo.cache = None
+        # synchronize with the remote revision upon completion of commit
+        self.__rev = self.cache.get("rev", None)
         return res
 
     def __iter__(self):
@@ -288,7 +307,7 @@ class Repo(Entity):
     def __getitem__(self, dsname):
         try:
             if dsname in self:
-                return DataSet(dsname, self)
+                return DataSet(dsname, self, -1)
         except (AssertionError, ):
             pass
         raise KeyError("invalid dataset '{0}'".format(dsname))

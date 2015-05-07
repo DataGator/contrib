@@ -33,7 +33,7 @@ from datagator.api.client import Repo, DataSet
 
 
 __all__ = ['TestRepo',
-           ]
+           'TestDataSet']
 __all__ = [to_native(n) for n in __all__]
 
 
@@ -98,6 +98,53 @@ class TestRepo(unittest.TestCase):
         self.assertIsInstance(repo['IGO_Members'], DataSet)
         self.assertTrue(repo['IGO_Members'].cache is not None)
         pass  # void return
+
+    pass
+
+
+@unittest.skipIf(
+    not os.environ.get('DATAGATOR_CREDENTIALS', None) and
+    os.environ.get('TRAVIS', False),
+    "credentials required for unsupervised testing")
+class TestDataSet(unittest.TestCase):
+    """
+    Endpoint:
+        ``^/<repo>/<dataset>[.<rev>]``
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo, cls.secret = get_credentials()
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        pass  # void return
+
+    def test_DataSet_init(self):
+        repo = Repo(self.repo)
+
+        # via `DataSet.__init__` (no sync)
+        ds = DataSet("IGO_Members", repo)
+        self.assertEqual(ds.rev, None)
+        ds.cache = None
+
+        # via `DataSet.__init__` (with sync, latest revision)
+        ds = DataSet("IGO_Members", repo, -1)
+        self.assertTrue(ds.rev > 0)
+        ds.cache = None
+
+        # via `DataSet.__init__` (with sync, historical revision)
+        ds = DataSet("IGO_Members", repo, 1)
+        self.assertEqual(ds.rev, 1)
+        ds.cache = None
+
+        # via `repo[dsname]` (with sync, latest revision)
+        ds = repo['IGO_Members']
+        self.assertTrue(ds.rev > 0)
+        ds.cache = None
+
+        pass
 
     pass
 
