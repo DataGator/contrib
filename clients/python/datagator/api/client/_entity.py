@@ -200,29 +200,6 @@ class Entity(with_metaclass(EntityType, object)):
         pass
 
     @property
-    def cache(self):
-        data = Entity.__cache__.get(self.uri, None)
-        if data is None:
-            with validated(Entity.__service__.get(self.uri, stream=True)) as r:
-                data = r.body
-                kind = data.get("kind")
-                # valid response should bare a matching entity kind
-                assert(kind == "datagator#{0}".format(self.kind)), \
-                    "unexpected entity kind '{0}'".format(kind)
-                # cache data for reuse
-                if r.headers.get("Cache-Control", "private") != "no-cache":
-                    Entity.__cache__.put(self.uri, data)
-        return data
-
-    @cache.setter
-    def cache(self, data):
-        if data is not None:
-            Entity.__cache__.put(self.uri, data)
-        else:
-            Entity.__cache__.delete(self.uri)
-        pass
-
-    @property
     def kind(self):
         return self.__kind
 
@@ -235,6 +212,32 @@ class Entity(with_metaclass(EntityType, object)):
     @abc.abstractmethod
     def ref(self):
         return None
+
+    # `cache` is defined with standalone getter / setter methods, because a
+    # subclass may need to extend these methods though `super(SubClass, self)`
+
+    def _cache_getter(self):
+        data = Entity.__cache__.get(self.uri, None)
+        if data is None:
+            with validated(Entity.__service__.get(self.uri, stream=True)) as r:
+                data = r.body
+                kind = data.get("kind")
+                # valid response should bare a matching entity kind
+                assert(kind == "datagator#{0}".format(self.kind)), \
+                    "unexpected entity kind '{0}'".format(kind)
+                # cache data for reuse (iff. advised by the backend)
+                if r.headers.get("Cache-Control", "private") != "no-cache":
+                    Entity.__cache__.put(self.uri, data)
+        return data
+
+    def _cache_setter(self, data):
+        if data is not None:
+            Entity.__cache__.put(self.uri, data)
+        else:
+            Entity.__cache__.delete(self.uri)
+        pass
+
+    cache = property(_cache_getter, _cache_setter)
 
     def __json__(self):
         return self.cache

@@ -151,7 +151,7 @@ class ChangeSet(object):
 
 class DataSet(Entity):
 
-    __slots__ = ['__name', '__repo', '__rev', '__writer', ]
+    __slots__ = ['__name', '__repo', '__rev', '__writer', '__items_dict', ]
 
     def __init__(self, name, repo, rev=None):
         super(DataSet, self).__init__(self.__class__.__name__)
@@ -159,6 +159,7 @@ class DataSet(Entity):
         self.__repo = repo
         self.__rev = rev if rev != -1 else None
         self.__writer = None
+        self.__items_dict = None
         # when `rev` is `None`, the dataset may not exist in the backend
         # service (i.e. we are creating a new dataset).
         if rev is None:
@@ -211,6 +212,25 @@ class DataSet(Entity):
     def rev(self):
         return self.__rev
 
+    @property
+    def cache(self):
+        return super(DataSet, self)._cache_getter()
+
+    @cache.setter
+    def cache(self, data):
+        if data is None:
+            self.__items_dict = None
+            # synchronize with the remote revision upon cache invalidation
+            self.__rev = self.cache.get("rev", None)
+        return super(DataSet, self)._cache_setter(data)
+
+    @property
+    def items_dict(self):
+        if self.__items_dict is None:
+            self.__items_dict = dict([
+                (i.get("name"), i) for i in self.cache.get("items", [])])
+        return self.__items_dict
+
     def __enter__(self):
         if self.__writer is None:
             self.__writer = ChangeSet(self)
@@ -221,14 +241,15 @@ class DataSet(Entity):
         res = self.__writer.__exit__(ext_type, exc_value, traceback)
         self.cache = None
         self.repo.cache = None
-        # synchronize with the remote revision upon completion of commit
-        self.__rev = self.cache.get("rev", None)
         return res
 
-    def __iter__(self):
-        for item in self.cache.get("items", []):
-            yield item.get("name")
-        pass
+    def __contains__(self, key):
+        return key in self.items_dict
+
+    def __getitem__(self, key):
+        item = self.items_dict[key]
+        # TODO wrap raw item as an entity
+        return item
 
     def __setitem__(self, key, value):
         with self as c:
@@ -240,8 +261,13 @@ class DataSet(Entity):
             c[key] = None
         pass
 
+    def __iter__(self):
+        for key in self.items_dict:
+            yield key
+        pass
+
     def __len__(self):
-        return self.cache.get("itemsCount", 0)
+        return len(self.items_dict)
 
     def patch(self, changes):
         """
