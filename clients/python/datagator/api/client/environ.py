@@ -98,5 +98,5 @@ class EnvironModule(types.ModuleType):
 
 
 # override current Python module with an instance of EnvironModule to enable
-# fine-granular access control on some *derived* environment variables.
+# write protection of some *derived* environment variables.
 sys.modules[__name__] = EnvironModule(__name__, __doc__)

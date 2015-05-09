@@ -213,8 +213,9 @@ class Entity(with_metaclass(EntityType, object)):
     def ref(self):
         return None
 
-    # `cache` is defined with standalone getter / setter methods, because a
-    # subclass may need to extend these methods though `super(SubClass, self)`
+    # `cache` is defined with old-school getter / setter methods, because a
+    # subclass may need to access `super(SubClass, self)._cache_getter()` and
+    # `._cache_setter()` to extend the default caching behaviour.
 
     def _cache_getter(self):
         data = Entity.__cache__.get(self.uri, None)

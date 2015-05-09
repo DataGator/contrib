@@ -333,6 +333,7 @@ class Repo(Entity):
     def __getitem__(self, dsname):
         try:
             if dsname in self:
+                # always return the latested revision
                 return DataSet(dsname, self, -1)
         except (AssertionError, ):
             pass
