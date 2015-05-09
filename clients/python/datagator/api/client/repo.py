@@ -12,6 +12,7 @@
 
 from __future__ import unicode_literals, with_statement
 
+import fcntl
 import io
 import json
 import jsonschema
@@ -19,7 +20,7 @@ import logging
 import tempfile
 
 from . import environ
-from ._compat import to_native, to_unicode, to_bytes
+from ._compat import to_native, to_unicode, to_bytes, _thread
 from ._entity import Entity, validated
 
 
@@ -35,13 +36,14 @@ class ChangeSet(object):
     MAX_PAYLOAD_SIZE = 2 ** 24  # 16 MB
     MAX_BUFFER_SIZE = 2 ** 16   # 64 kB
 
-    __slots__ = ['__uri', '__tmp', '__cnt', ]
+    __slots__ = ['__uri', '__lock', '__tmp', '__cnt', ]
 
     def __init__(self, dataset):
         if not isinstance(dataset, DataSet):
             raise TypeError("invalid dataset")
         self.__uri = dataset.uri
         super(ChangeSet, self).__init__()
+        self.__lock = _thread.allocate_lock()
         self.__tmp = None
         self.__cnt = 0
         self._rewind()
@@ -56,31 +58,45 @@ class ChangeSet(object):
         pass
 
     def _rewind(self):
+
         if len(self) > 0:
             raise AssertionError("cannot rewind a pending revision")
         elif self.__tmp is not None:
             _log.debug("attempting to rewind an empty revision")
             # which is unnecessary, thus the short-cut return
             return
+
+        # lock the change set to prevent changes from other threads
+        if not self.__lock.acquire(0):
+            raise AssertionError("failed to lock change set")
+
         _log.debug("creating new revision for '{0}'".format(self.__uri))
         self.__tmp = tempfile.SpooledTemporaryFile(
             max_size=ChangeSet.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
+        fcntl.lockf(self.__tmp, fcntl.LOCK_EX | fcntl.LOCK_NB)
         self.__cnt = 0
         self.__tmp.write(to_bytes("{"))
+
         pass
 
     def _commit(self):
+
         if len(self) == 0:
             _log.debug("attempting to commit an empty revision")
             # which is unnecessary, thus the short-cut return
             return
+        elif not self.__lock.locked():
+            raise AssertionError("commit without acquiring lock")
         elif self.__tmp is None:
             raise AssertionError("cannot commit an uninitialized revision")
+
         self.__tmp.write(to_bytes("}"))
         self.__tmp.flush()
+
         _log.debug("committing revision")
         _log.debug("  - entries count: {0}".format(len(self)))
         _log.debug("  - payload size: {0}".format(self.__tmp.tell()))
+
         try:
             self.__tmp.seek(0)
             if environ.DATAGATOR_API_VERSION == "v1":
@@ -98,10 +114,13 @@ class ChangeSet(object):
             raise
         else:
             # prepare for consecutive revisions
+            fcntl.lockf(self.__tmp, fcntl.LOCK_UN)
             self.__tmp.close()
             self.__tmp = None
             self.__cnt = 0
+            self.__lock.release()
             self._rewind()
+
         pass
 
     def __setitem__(self, key, value):

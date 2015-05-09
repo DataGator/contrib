@@ -66,6 +66,13 @@ from __future__ import unicode_literals, with_statement
 
 import sys
 
+try:
+    # python 3
+    import _thread
+except ImportError:
+    # python 2
+    import thread as _thread
+
 
 PY2 = (sys.version_info[0] == 2)
 

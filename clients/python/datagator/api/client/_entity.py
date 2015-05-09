@@ -215,7 +215,7 @@ class Entity(with_metaclass(EntityType, object)):
 
     # `cache` is defined with old-school getter / setter methods, because a
     # subclass may need to access `super(SubClass, self)._cache_getter()` and
-    # `._cache_setter()` to extend the default caching behaviour.
+    # `._cache_setter()` to extend / override the default caching behaviour.
 
     def _cache_getter(self):
         data = Entity.__cache__.get(self.uri, None)
