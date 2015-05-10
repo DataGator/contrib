@@ -85,7 +85,15 @@ class TestRepo(unittest.TestCase):
         self.assertEqual(len(repo), cnt)
         pass  # void return
 
-    def test_Repo_item(self):
+    def test_Repo_getitem(self):
+        repo = Repo(self.repo)
+        self.assertIsInstance(repo["IGO_Members"], DataSet)
+        self.assertRaises(KeyError, repo.__getitem__, "NonExistence")
+        self.assertRaises(KeyError, repo.__getitem__, "A#B")
+        self.assertRaises(KeyError, repo.__getitem__, "IGO_Members/UN")
+        pass  # void return
+
+    def test_Repo_setitem(self):
         revision = {
             "UN": open_data(os.path.join("json", "IGO_Members", "UN.json")),
             "WTO": open_data(os.path.join("json", "IGO_Members", "WTO.json")),
@@ -127,24 +135,20 @@ class TestDataSet(unittest.TestCase):
         # via `DataSet.__init__` (no sync)
         ds = DataSet("IGO_Members", repo)
         self.assertEqual(ds.rev, None)
-        ds.cache = None
 
         # via `DataSet.__init__` (with sync, latest revision)
         ds = DataSet("IGO_Members", repo, -1)
         self.assertTrue(ds.rev > 0)
-        ds.cache = None
 
         # via `DataSet.__init__` (with sync, historical revision)
         ds = DataSet("IGO_Members", repo, 1)
         self.assertEqual(ds.rev, 1)
-        ds.cache = None
 
         # via `repo[dsname]` (with sync, latest revision)
         ds = repo['IGO_Members']
         self.assertTrue(ds.rev > 0)
-        ds.cache = None
 
-        pass
+        pass  # void return
 
     pass
 

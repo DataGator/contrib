@@ -33,8 +33,8 @@ _log = logging.getLogger(__name__)
 
 class ChangeSet(object):
 
-    MAX_PAYLOAD_SIZE = 2 ** 24  # 16 MB
-    MAX_BUFFER_SIZE = 2 ** 16   # 64 kB
+    MAX_PAYLOAD_BYTES = 2 ** 24  # 16 MB
+    MAX_BUFFER_BYTES = 2 ** 16   # 64 kB
 
     __slots__ = ['__uri', '__lock', '__tmp', '__cnt', ]
 
@@ -72,7 +72,7 @@ class ChangeSet(object):
 
         _log.debug("creating new revision for '{0}'".format(self.__uri))
         self.__tmp = tempfile.SpooledTemporaryFile(
-            max_size=ChangeSet.MAX_BUFFER_SIZE, suffix=".DataGatorCache")
+            max_size=ChangeSet.MAX_BUFFER_BYTES, suffix=".DataGatorCache")
         fcntl.lockf(self.__tmp, fcntl.LOCK_EX | fcntl.LOCK_NB)
         self.__cnt = 0
         self.__tmp.write(to_bytes("{"))
@@ -137,7 +137,7 @@ class ChangeSet(object):
         f.write(to_bytes(": "))
         f.write(to_bytes(value))
         self.__cnt += 1
-        if f.tell() < ChangeSet.MAX_PAYLOAD_SIZE:
+        if f.tell() < ChangeSet.MAX_PAYLOAD_BYTES:
             return
         self._commit()
 
@@ -179,6 +179,7 @@ class DataSet(Entity):
         self.__rev = rev if rev != -1 else None
         self.__writer = None
         self.__items_dict = None
+        _log.debug("initializing dataset '{0}'".format(self.uri))
         # when `rev` is `None`, the dataset may not exist in the backend
         # service (i.e. we are creating a new dataset).
         if rev is None:
@@ -194,12 +195,11 @@ class DataSet(Entity):
             # pull the remote revision from the backend service.
             if rev == -1:
                 self.cache = None
-            content = self.cache
-            assert(content is not None), "no such revision '{0}'".format(rev)
-            remote_rev = content.get("rev", None)
+            remote_rev = self.cache.get("rev", None)
             assert(rev == remote_rev or rev == -1), \
                 "inconsistent revision '{0}' != '{1}'".format(remote_rev, rev)
-            self.__rev = remote_rev
+            # when invoking `self.cache`, `self.rev` is already synchronized,
+            # i.e., `self.rev` is always equal to `remote_rev` at this point.
         pass
 
     @property
@@ -233,15 +233,18 @@ class DataSet(Entity):
 
     @property
     def cache(self):
-        return super(DataSet, self)._cache_getter()
+        content = super(DataSet, self)._cache_getter()
+        # synchronize with the remote revision upon cache overwrite
+        if self.__rev is None:
+            self.__rev = content.get("rev", None)
+        return content
 
     @cache.setter
     def cache(self, data):
-        if data is None:
-            self.__items_dict = None
-            # synchronize with the remote revision upon cache invalidation
-            self.__rev = self.cache.get("rev", None)
-        return super(DataSet, self)._cache_setter(data)
+        super(DataSet, self)._cache_setter(data)
+        self.__items_dict = None
+        self.__rev = None
+        pass
 
     @property
     def items_dict(self):
@@ -351,10 +354,9 @@ class Repo(Entity):
 
     def __getitem__(self, dsname):
         try:
-            if dsname in self:
-                # always return the latested revision
-                return DataSet(dsname, self, -1)
-        except (AssertionError, ):
+            # always return the latested revision
+            return DataSet(dsname, self, -1)
+        except (AssertionError, RuntimeError, ):
             pass
         raise KeyError("invalid dataset '{0}'".format(dsname))
 

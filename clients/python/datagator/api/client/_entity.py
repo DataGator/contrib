@@ -233,6 +233,13 @@ class Entity(with_metaclass(EntityType, object)):
 
     def _cache_setter(self, data):
         if data is not None:
+            try:
+                Entity.__schema__.validate(data)
+                new_kind = data.get("kind", None)
+                assert(new_kind == self.kind), \
+                    "unexpected entity kind '{0}'".format(new_kind)
+            except jsonschema.ValidationError:
+                raise AssertionError("invalid cache content")
             Entity.__cache__.put(self.uri, data)
         else:
             Entity.__cache__.delete(self.uri)
