@@ -23,6 +23,8 @@ from . import environ
 from ._compat import to_native, to_unicode, to_bytes, _thread
 from ._entity import Entity, validated
 
+from .data import DataItem
+
 
 __all__ = ['DataSet', 'Repo', ]
 __all__ = [to_native(n) for n in __all__]
@@ -270,7 +272,11 @@ class DataSet(Entity):
 
     def __getitem__(self, key):
         item = self.items_dict[key]
-        # TODO wrap raw item as an entity
+        if isinstance(item, dict):
+            # instantiate data item and cache in `items_dict`
+            kind = item.get("kind", None)
+            item = DataItem(kind, self, key)
+            self.items_dict[key] = item
         return item
 
     def __setitem__(self, key, value):

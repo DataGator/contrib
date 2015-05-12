@@ -28,11 +28,21 @@ from ._cache import CacheManager
 from ._compat import with_metaclass, to_bytes, to_native, to_unicode
 
 
-__all__ = ['Entity', 'validated', ]
+__all__ = ['Entity', 'validated', 'normalized', ]
 __all__ = [to_native(n) for n in __all__]
 
 
 _log = logging.getLogger(__name__)
+
+
+def normalized(kind):
+    """
+    Normalized entity kind without leading "datagator#"
+    """
+    kind = to_unicode(kind or "")
+    if kind.startswith("datagator#"):
+        kind = kind[len("datagator#"):]
+    return kind or None
 
 
 class validated(object):
@@ -193,10 +203,7 @@ class Entity(with_metaclass(EntityType, object)):
 
     def __init__(self, kind):
         super(Entity, self).__init__()
-        kind = to_unicode(kind)
-        if kind.startswith("datagator#"):
-            kind = kind[len("datagator#"):]
-        self.__kind = kind
+        self.__kind = normalized(kind)
         pass
 
     @property
@@ -222,9 +229,9 @@ class Entity(with_metaclass(EntityType, object)):
         if data is None:
             with validated(Entity.__service__.get(self.uri, stream=True)) as r:
                 data = r.body
-                kind = data.get("kind")
+                kind = normalized(data.get("kind", None))
                 # valid response should bare a matching entity kind
-                assert(kind == "datagator#{0}".format(self.kind)), \
+                assert(kind == self.kind), \
                     "unexpected entity kind '{0}'".format(kind)
                 # cache data for reuse (iff. advised by the backend)
                 if r.headers.get("Cache-Control", "private") != "no-cache":
@@ -235,7 +242,7 @@ class Entity(with_metaclass(EntityType, object)):
         if data is not None:
             try:
                 Entity.__schema__.validate(data)
-                new_kind = data.get("kind", None)
+                new_kind = normalized(data.get("kind", None))
                 assert(new_kind == self.kind), \
                     "unexpected entity kind '{0}'".format(new_kind)
             except jsonschema.ValidationError:
