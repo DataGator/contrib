@@ -15,7 +15,8 @@ before_install:
   - pip install pep8 
   - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install importlib; fi
-  - pip install coverage 
+  - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install ordereddict; fi
+  - pip install coverage
 
 install: 
   - pip install $HTTP_LIBRARY

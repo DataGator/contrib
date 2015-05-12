@@ -12,7 +12,7 @@
 
 from __future__ import unicode_literals, with_statement
 
-from ._compat import with_metaclass, to_native, to_unicode
+from ._compat import OrderedDict, with_metaclass, to_native, to_unicode
 from ._entity import Entity, normalized
 
 
@@ -40,20 +40,18 @@ class DataItem(Entity):
 
     @property
     def uri(self):
-        return "{0}/{1}{2}".format(self.dataset.uri, self.key, "")
+        return "{0}/{1}".format(self.dataset.uri, self.key)
 
     @property
     def ref(self):
         # NOTE: the JSON-based reference of a `DataItem` reuses the schema of
         # `DataSet`, but `items` and `itemsCount` fields are always present.
         obj = self.dataset.ref
-        obj.update({
-            "items": [{
-                "kind": "datagator#{0}".format(self.kind),
-                "name": self.key,
-            }, ],
-            "itemsCount": 1
-        })
+        obj['items'] = tuple([OrderedDict([
+            ("kind", "datagator#{0}".format(self.kind)),
+            ("name", self.key),
+        ]), ])
+        obj['itemsCount'] = 1
         return obj
 
     @property

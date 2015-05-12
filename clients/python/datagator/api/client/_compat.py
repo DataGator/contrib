@@ -74,6 +74,14 @@ except ImportError:
     import thread as _thread
 
 
+try:
+    # python 3
+    from collections import OrderedDict
+except ImportError:
+    # python 2
+    from ordereddict import OrderedDict
+
+
 PY2 = (sys.version_info[0] == 2)
 
 

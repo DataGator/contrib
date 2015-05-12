@@ -20,7 +20,7 @@ import logging
 import tempfile
 
 from . import environ
-from ._compat import to_native, to_unicode, to_bytes, _thread
+from ._compat import OrderedDict, to_native, to_unicode, to_bytes, _thread
 from ._entity import Entity, validated
 
 from .data import DataItem
@@ -212,7 +212,7 @@ class DataSet(Entity):
 
     @property
     def ref(self):
-        obj = dict([
+        obj = OrderedDict([
             ("kind", "datagator#DataSet"),
             ("name", self.name),
             ("repo", self.repo.ref),
@@ -339,7 +339,7 @@ class Repo(Entity):
 
     @property
     def ref(self):
-        return dict([
+        return OrderedDict([
             ("kind", "datagator#Repo"),
             ("name", self.name),
         ])
