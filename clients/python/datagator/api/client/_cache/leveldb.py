@@ -83,7 +83,6 @@ class LevelDbCache(CacheManager):
 
     def __del__(self):
         _log.debug("destroying local cache")
-        _log.debug(self.db.GetStats())
         try:
             self.__db = None
             _leveldb.DestroyDB(to_native(self.__fs))

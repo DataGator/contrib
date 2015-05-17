@@ -50,32 +50,64 @@ class validated(object):
     Context manager and proxy to validated response from backend service
     """
 
-    __slots__ = ['__response', '__expected_status', '__body', '__size', ]
+    DEFAULT_CHUNK_SIZE = 2 ** 21  # 2MB
 
-    def __init__(self, response, verify_code=True):
+    __slots__ = ['__response', '__expected_status', '__raw_body',
+                 '__decoded_body', '__size', ]
+
+    def __init__(self, response, verify_status=True):
         """
         :param response: response object from the backend service
         :param exptected: `list` or `tuple` of expected status codes
         """
         self.__response = response
-        self.__expected_status = tuple(verify_code) \
-            if isinstance(verify_code, (list, tuple)) else (200, ) \
-            if verify_code else None
-        self.__body = None
+        self.__expected_status = tuple(verify_status) \
+            if isinstance(verify_status, (list, tuple)) else (200, ) \
+            if verify_status else None
+        self.__raw_body = None
+        self.__decoded_body = None
         self.__size = 0
         pass
 
     @property
     def status_code(self):
+        """
+        HTTP status code of the underlying response
+        """
         return self.__response.status_code
 
     @property
     def headers(self):
+        """
+        HTTP message headers of the underlying response
+        """
         return self.__response.headers
 
     @property
     def body(self):
-        return self.__body
+        """
+        HTTP message body stored as a file-like object
+        """
+        if self.__raw_body is not None:
+            self.__raw_body.seek(0)
+        return self.__raw_body
+
+    def json(self, validate_schema=True):
+        """
+        JSON-decoded message body of the underlying response
+        """
+        if self.__decoded_body is None:
+            try:
+                # py3k cannot `json.load()` binary files directly, it needs a
+                # text IO wrapper to handle decoding (to unicode / str)
+                data = json.load(io.TextIOWrapper(self.body))
+                if validate_schema:
+                    Entity.__schema__.validate(data)
+            except (jsonschema.ValidationError, AssertionError, IOError, ):
+                raise RuntimeError("invalid response from backend service")
+            else:
+                self.__decoded_body = data
+        return self.__decoded_body
 
     def __len__(self):
         return self.__size
@@ -89,31 +121,24 @@ class validated(object):
         try:
             # response body should be a valid JSON object
             assert(self.headers['Content-Type'] == "application/json")
-            data = None
-            chunk_size = 2 ** 16
-            with tempfile.SpooledTemporaryFile(
-                    max_size=chunk_size, mode="w+b",
-                    suffix=".DataGatorEntity") as f:
-                # make sure f conforms to the prototype of IOBase
-                for attr in ("readable", "writable", "seekable"):
-                    if not hasattr(f, attr):
-                        setattr(f, attr, lambda: True)
-                # wrie decoded response body
-                for chunk in self.__response.iter_content(
-                        chunk_size=chunk_size, decode_unicode=True):
-                    if not chunk:
-                        continue
-                    f.write(chunk)
-                self.__size = f.tell()
-                _log.debug("  - decoded size: {0}".format(len(self)))
-                # py3k cannot `json.load()` binary files directly, it needs a
-                # text IO wrapper to handle decoding (to unicode / str)
-                f.seek(0)
-                data = json.load(io.TextIOWrapper(f))
-                f.close()
-            Entity.__schema__.validate(data)
-            self.__body = data
-        except (jsonschema.ValidationError, AssertionError, IOError, ):
+            f = tempfile.SpooledTemporaryFile(
+                max_size=self.DEFAULT_CHUNK_SIZE, mode="w+b",
+                suffix=".DataGatorEntity")
+            # make sure f conforms to the prototype of `io.IOBase`
+            for attr in ("readable", "writable", "seekable"):
+                if not hasattr(f, attr):
+                    setattr(f, attr, lambda: True)
+            # wrie decoded response body
+            for chunk in self.__response.iter_content(
+                    chunk_size=self.DEFAULT_CHUNK_SIZE,
+                    decode_unicode=True):
+                if not chunk:
+                    continue
+                f.write(chunk)
+            self.__raw_body = f
+            self.__size = f.tell()
+            _log.debug("  - decoded size: {0:,}".format(len(self)))
+        except (AssertionError, IOError, ):
             # re-raise as runtime error
             raise RuntimeError("invalid response from backend service")
         else:
@@ -121,6 +146,7 @@ class validated(object):
             if self.__expected_status is not None and \
                     self.status_code not in self.__expected_status:
                 # error responses always come with code and message
+                data = self.json()
                 msg = "unexpected response from backend service"
                 if data.get("kind") == "datagator#Error":
                     msg = "{0} ({1}): {2}".format(
@@ -133,8 +159,10 @@ class validated(object):
     def __exit__(self, ext_type, exc_value, traceback):
         if isinstance(exc_value, Exception):
             _log.error("failed response validation")
-        else:
-            pass
+        # discard temporary file
+        if self.__raw_body is not None:
+            self.__raw_body.close()
+            self.__raw_body = None
         return False  # re-raise exception
 
     pass
@@ -228,7 +256,9 @@ class Entity(with_metaclass(EntityType, object)):
         data = Entity.__cache__.get(self.uri, None)
         if data is None:
             with validated(Entity.__service__.get(self.uri, stream=True)) as r:
-                data = r.body
+                # TODO: avoid JSON decoding by default, i.e. get entity kind
+                # from HTTP response header among other potential meta data
+                data = r.json()
                 kind = normalized(data.get("kind", None))
                 # valid response should bare a matching entity kind
                 assert(kind == self.kind), \
