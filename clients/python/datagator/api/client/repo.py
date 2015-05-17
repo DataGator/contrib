@@ -94,10 +94,11 @@ class ChangeSet(object):
 
         self.__tmp.write(to_bytes("}"))
         self.__tmp.flush()
+        self.__tmp.seek(0, 2)  # py26 does not define SEEK_END
 
         _log.debug("committing revision")
-        _log.debug("  - entries count: {0:,}".format(len(self)))
-        _log.debug("  - payload size: {0:,}".format(self.__tmp.tell()))
+        _log.debug("  - entries count: {0}".format(len(self)))
+        _log.debug("  - payload size: {0}".format(self.__tmp.tell()))
 
         try:
             self.__tmp.seek(0)
@@ -130,7 +131,7 @@ class ChangeSet(object):
         key = json.dumps(key)
         value = value.read() if hasattr(value, "read") else json.dumps(value)
         _log.debug("  - key: {0}".format(key))
-        _log.debug("  - size: {0:,}".format(len(value)))
+        _log.debug("  - size: {0}".format(len(value)))
         # write serialized value to temporary file
         f = self.__tmp
         if len(self):

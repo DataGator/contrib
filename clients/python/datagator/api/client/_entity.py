@@ -137,7 +137,7 @@ class validated(object):
                 f.write(chunk)
             self.__raw_body = f
             self.__size = f.tell()
-            _log.debug("  - decoded size: {0:,}".format(len(self)))
+            _log.debug("  - decoded size: {0}".format(len(self)))
         except (AssertionError, IOError, ):
             # re-raise as runtime error
             raise RuntimeError("invalid response from backend service")
