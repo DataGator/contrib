@@ -36,7 +36,7 @@ _log = logging.getLogger(__name__)
 class ChangeSet(object):
 
     MAX_PAYLOAD_BYTES = 2 ** 24  # 16 MB
-    MAX_BUFFER_BYTES = 2 ** 16   # 64 kB
+    MAX_BUFFER_BYTES = 2 ** 21   # 2 MB
 
     __slots__ = ['__uri', '__lock', '__tmp', '__cnt', ]
 
