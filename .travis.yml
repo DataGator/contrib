@@ -17,6 +17,7 @@ before_install:
   - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install importlib; fi
   - if [[ $TRAVIS_PYTHON_VERSION == *2.6* ]]; then pip install ordereddict; fi
   - pip install coverage
+  - pip install coveralls
 
 install: 
   - pip install $HTTP_LIBRARY
@@ -25,8 +26,11 @@ install:
 
 script:
   - pep8 .
-  - coverage run --omit "*test*,*requests*,*curl*,*pkg*,*argparse*,*site-packages*" --module tests --verbose
+  - coverage run --module tests --verbose
   - coverage report --show-missing
+
+after_success:
+  - coveralls
 
 notifications: 
   email: 

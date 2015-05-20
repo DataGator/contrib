@@ -48,6 +48,11 @@ The public documentation of ``DataGator`` (aka. ``docs``) collects specification
    :target: https://travis-ci.org/liuyu81/datagator-contrib
    :alt: Travis CI Build Status
 
+.. image:: https://coveralls.io/repos/liuyu81/datagator-contrib/badge.svg
+   :target: https://coveralls.io/r/liuyu81/datagator-contrib
+   :alt: Test Coverage Status
+
+
 The public test suite of ``DataGator`` (aka. ``tests``) is designed for (i) validation of ``DataGator``'s backend services through the RESTful API, and (ii) coverage test of ``DataGator``'s HTTP client libraries.
 
 Basic usage is simply,
