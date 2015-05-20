@@ -108,12 +108,12 @@ class ChangeSet(object):
         try:
             self.__tmp.seek(0, SEEK_SET)
             if environ.DATAGATOR_API_VERSION == "v1":
-                with validated(Entity.__service__.put(
+                with validated(Entity.service.put(
                         self.__uri, data=self.__tmp), (202, )) as r:
                     # TODO watch task for completion
                     pass
             else:
-                with validated(Entity.__service__.patch(
+                with validated(Entity.service.patch(
                         self.__uri, data=self.__tmp), (202, )) as r:
                     # TODO watch task for completion
                     pass
@@ -193,7 +193,7 @@ class DataSet(Entity):
         if rev is None:
             # validate the name locally against the schema
             try:
-                Entity.__schema__.validate(self.ref)
+                Entity.schema.validate(self.ref)
             except jsonschema.ValidationError:
                 raise AssertionError("invalid dataset name")
         # when `rev` is not `None`, the dataset is assumed to exist in the
@@ -332,7 +332,7 @@ class Repo(Entity):
         if self.cache is None:
             raise AssertionError("invalid repository '{0}'".format(self.name))
         if access_key is not None:
-            Entity.__service__.auth = (self.name, access_key)
+            Entity.service.auth = (self.name, access_key)
         pass
 
     @property
@@ -355,9 +355,9 @@ class Repo(Entity):
             # if `dsname` is not a valid name for a DataSet entity, then it is
             # guaranteed to *not* exist in the storage backend.
             ref = DataSet(self, dsname)
-            # looking up `Entity.__cache__` is more preferrable than `ds.cache`
+            # looking up `Entity.store` is more preferrable than `ds.cache`
             # because the latter may trigger connection to the backend service
-            if Entity.__cache__.exists(ref.uri):
+            if Entity.store.exists(ref.uri):
                 return True
             return ref.cache is not None
         except (AssertionError, RuntimeError, ):
@@ -380,12 +380,12 @@ class Repo(Entity):
             raise KeyError("invalid dataset name")
         # create / update dataset
         if environ.DATAGATOR_API_VERSION == "v1":
-            with validated(Entity.__service__.put(self.uri, ref.ref), (202, )):
+            with validated(Entity.service.put(self.uri, ref.ref), (202, )):
                 # TODO watch task for completion
                 pass
         else:
             with validated(
-                    Entity.__service__.put(ref.uri, ref.ref), (200, 201)):
+                    Entity.service.put(ref.uri, ref.ref), (200, 201)):
                 # since v2, data set creation / update is a synchronized
                 # operation, no task will be created whatsoever
                 pass

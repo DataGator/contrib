@@ -102,7 +102,7 @@ class validated(object):
                 # text IO wrapper to handle decoding (to unicode / str)
                 data = json.load(io.TextIOWrapper(self.body))
                 if validate_schema:
-                    Entity.__schema__.validate(data)
+                    Entity.schema.validate(data)
             except (jsonschema.ValidationError, AssertionError, IOError, ):
                 raise RuntimeError("invalid response from backend service")
             else:
@@ -184,7 +184,7 @@ class EntityType(type):
             raise AssertionError("invalid cache backend '{0}'".format(
                 environ.DATAGATOR_CACHE_BACKEND))
         else:
-            prop['__cache__'] = CacheManagerBackend()
+            prop['store'] = CacheManagerBackend()
 
         # initialize backend service shared by all entities
         try:
@@ -192,7 +192,7 @@ class EntityType(type):
         except:
             raise RuntimeError("failed to initialize backend service")
         else:
-            prop['__service__'] = service
+            prop['service'] = service
 
         # initialize schema validator shared by all entities
         try:
@@ -205,11 +205,11 @@ class EntityType(type):
                     f.close()
             # load schema from service backend (slow but always up-to-date)
             if schema is None:
-                schema = prop['__service__'].schema
+                schema = prop['service'].schema
         except:
             raise RuntimeError("failed to initialize schema validator")
         else:
-            prop['__schema__'] = jsonschema.Draft4Validator(schema)
+            prop['schema'] = jsonschema.Draft4Validator(schema)
 
         return type(to_native(name), parent, prop)
 
@@ -224,7 +224,7 @@ class Entity(with_metaclass(EntityType, object)):
     @classmethod
     def cleanup(cls):
         # decref triggers garbage collection of the cache manager backend
-        setattr(cls, "__cache__", None)
+        setattr(cls, "store", None)
         pass
 
     __slots__ = ['__kind', ]
@@ -253,33 +253,36 @@ class Entity(with_metaclass(EntityType, object)):
     # `._cache_setter()` to extend / override the default caching behaviour.
 
     def _cache_getter(self):
-        data = Entity.__cache__.get(self.uri, None)
+        data = Entity.store.get(self.uri, None)
         if data is None:
-            with validated(Entity.__service__.get(self.uri, stream=True)) as r:
-                # TODO: avoid JSON decoding by default, i.e. get entity kind
-                # from HTTP response header among other potential meta data
-                data = r.json()
-                kind = normalized(data.get("kind", None))
-                # valid response should bare a matching entity kind
+            with validated(Entity.service.get(self.uri, stream=True)) as r:
+                # valid response should bear a matching entity kind
+                kind = normalized(r.headers.get("X-DataGator-Entity", None))
                 assert(kind == self.kind), \
                     "unexpected entity kind '{0}'".format(kind)
                 # cache data for reuse (iff. advised by the backend)
                 if r.headers.get("Cache-Control", "private") != "no-cache":
-                    Entity.__cache__.put(self.uri, data)
+                    # cache backend typically only support byte-string values,
+                    # so passing `r.body` (file-like object) instead of `data`
+                    # (dictionary) can save an extra round of JSON-encoding.
+                    Entity.store.put(self.uri, r.body)
+                # this should come last since calling `r.json()` will close the
+                # temporary file under `r.body` implicitly (observed in py27).
+                data = r.json()
         return data
 
     def _cache_setter(self, data):
         if data is not None:
             try:
-                Entity.__schema__.validate(data)
+                Entity.schema.validate(data)
                 new_kind = normalized(data.get("kind", None))
                 assert(new_kind == self.kind), \
                     "unexpected entity kind '{0}'".format(new_kind)
             except jsonschema.ValidationError:
                 raise AssertionError("invalid cache content")
-            Entity.__cache__.put(self.uri, data)
+            Entity.store.put(self.uri, data)
         else:
-            Entity.__cache__.delete(self.uri)
+            Entity.store.delete(self.uri)
         pass
 
     cache = property(_cache_getter, _cache_setter)

@@ -79,7 +79,13 @@ class LevelDbCache(CacheManager):
 
     def put(self, key, value):
         _log.debug("putting '{0}' to cache".format(key))
-        return self.db.Put(to_bytes(key), to_bytes(json.dumps(value)))
+        if hasattr(value, "read"):
+            _log.debug("  - file-like object")
+            value = value.read()
+        else:
+            _log.debug("  - JSON-serializable object")
+            value = json.dumps(value)
+        return self.db.Put(to_bytes(key), to_bytes(value))
 
     def __del__(self):
         _log.debug("destroying local cache")
