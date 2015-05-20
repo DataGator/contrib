@@ -202,7 +202,7 @@ class DataSet(Entity):
             # when `rev` is -1, we always invalidate the cached dataset, and
             # pull the remote revision from the backend service.
             if rev == -1:
-                self.cache = None
+                del self.cache
             remote_rev = self.cache.get("rev", None)
             assert(rev == remote_rev or rev == -1), \
                 "inconsistent revision '{0}' != '{1}'".format(remote_rev, rev)
@@ -247,9 +247,9 @@ class DataSet(Entity):
             self.__rev = content.get("rev", None)
         return content
 
-    @cache.setter
-    def cache(self, data):
-        super(DataSet, self)._cache_setter(data)
+    @cache.deleter
+    def cache(self):
+        super(DataSet, self)._cache_deleter()
         self.__items_dict = None
         self.__rev = None
         pass
@@ -269,8 +269,8 @@ class DataSet(Entity):
     def __exit__(self, ext_type, exc_value, traceback):
         assert(self.__writer is not None), "committer not initialized"
         res = self.__writer.__exit__(ext_type, exc_value, traceback)
-        self.cache = None
-        self.repo.cache = None
+        del self.cache
+        del self.repo.cache
         return res
 
     def __contains__(self, key):
@@ -380,12 +380,13 @@ class Repo(Entity):
             raise KeyError("invalid dataset name")
         # create / update dataset
         if environ.DATAGATOR_API_VERSION == "v1":
-            with validated(Entity.service.put(self.uri, ref.ref), (202, )):
+            with validated(Entity.service.put(
+                    self.uri, ref.ref), (202, )) as r:
                 # TODO watch task for completion
                 pass
         else:
-            with validated(
-                    Entity.service.put(ref.uri, ref.ref), (200, 201)):
+            with validated(Entity.service.put(
+                    ref.uri, ref.ref), (200, 201)) as r:
                 # since v2, data set creation / update is a synchronized
                 # operation, no task will be created whatsoever
                 pass

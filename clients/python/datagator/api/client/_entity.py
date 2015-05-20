@@ -248,9 +248,9 @@ class Entity(with_metaclass(EntityType, object)):
     def ref(self):
         return None
 
-    # `cache` is defined with old-school getter / setter methods, because a
+    # `cache` is defined with old-school getter / deleter methods, because a
     # subclass may need to access `super(SubClass, self)._cache_getter()` and
-    # `._cache_setter()` to extend / override the default caching behaviour.
+    # `._cache_deleter()` to extend / override the default caching behaviour.
 
     def _cache_getter(self):
         data = Entity.store.get(self.uri, None)
@@ -271,21 +271,11 @@ class Entity(with_metaclass(EntityType, object)):
                 data = r.json()
         return data
 
-    def _cache_setter(self, data):
-        if data is not None:
-            try:
-                Entity.schema.validate(data)
-                new_kind = normalized(data.get("kind", None))
-                assert(new_kind == self.kind), \
-                    "unexpected entity kind '{0}'".format(new_kind)
-            except jsonschema.ValidationError:
-                raise AssertionError("invalid cache content")
-            Entity.store.put(self.uri, data)
-        else:
-            Entity.store.delete(self.uri)
+    def _cache_deleter(self):
+        Entity.store.delete(self.uri)
         pass
 
-    cache = property(_cache_getter, _cache_setter)
+    cache = property(_cache_getter, None, _cache_deleter)
 
     def __json__(self):
         return self.cache
