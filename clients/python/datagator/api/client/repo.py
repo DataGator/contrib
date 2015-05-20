@@ -30,6 +30,11 @@ __all__ = ['DataSet', 'Repo', ]
 __all__ = [to_native(n) for n in __all__]
 
 
+SEEK_SET = getattr(io, "SEEK_SET", 0)  # py26 does not define ``SEEK_*``
+SEEK_CUR = getattr(io, "SEEK_CUR", 1)
+SEEK_END = getattr(io, "SEEK_END", 2)
+
+
 _log = logging.getLogger(__name__)
 
 
@@ -94,14 +99,14 @@ class ChangeSet(object):
 
         self.__tmp.write(to_bytes("}"))
         self.__tmp.flush()
-        self.__tmp.seek(0, 2)  # py26 does not define SEEK_END
+        self.__tmp.seek(0, SEEK_END)
 
         _log.debug("committing revision")
         _log.debug("  - entries count: {0}".format(len(self)))
         _log.debug("  - payload size: {0}".format(self.__tmp.tell()))
 
         try:
-            self.__tmp.seek(0)
+            self.__tmp.seek(0, SEEK_SET)
             if environ.DATAGATOR_API_VERSION == "v1":
                 with validated(Entity.__service__.put(
                         self.__uri, data=self.__tmp), (202, )) as r:
@@ -175,7 +180,7 @@ class DataSet(Entity):
 
     __slots__ = ['__name', '__repo', '__rev', '__writer', '__items_dict', ]
 
-    def __init__(self, name, repo, rev=None):
+    def __init__(self, repo, name, rev=None):
         super(DataSet, self).__init__(self.__class__.__name__)
         self.__name = to_unicode(name)
         self.__repo = repo
@@ -349,7 +354,7 @@ class Repo(Entity):
         try:
             # if `dsname` is not a valid name for a DataSet entity, then it is
             # guaranteed to *not* exist in the storage backend.
-            ref = DataSet(dsname, self)
+            ref = DataSet(self, dsname)
             # looking up `Entity.__cache__` is more preferrable than `ds.cache`
             # because the latter may trigger connection to the backend service
             if Entity.__cache__.exists(ref.uri):
@@ -362,7 +367,7 @@ class Repo(Entity):
     def __getitem__(self, dsname):
         try:
             # always return the latested revision
-            return DataSet(dsname, self, -1)
+            return DataSet(self, dsname, -1)
         except (AssertionError, RuntimeError, ):
             pass
         raise KeyError("invalid dataset '{0}'".format(dsname))
@@ -370,7 +375,7 @@ class Repo(Entity):
     def __setitem__(self, dsname, items):
         ref = None
         try:
-            ref = DataSet(dsname, self)
+            ref = DataSet(self, dsname)
         except (AssertionError, ):
             raise KeyError("invalid dataset name")
         # create / update dataset

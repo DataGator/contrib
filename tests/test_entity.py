@@ -133,15 +133,15 @@ class TestDataSet(unittest.TestCase):
         repo = Repo(self.repo)
 
         # via `DataSet.__init__` (no sync)
-        ds = DataSet("IGO_Members", repo)
+        ds = DataSet(repo, "IGO_Members")
         self.assertEqual(ds.rev, None)
 
         # via `DataSet.__init__` (with sync, latest revision)
-        ds = DataSet("IGO_Members", repo, -1)
+        ds = DataSet(repo, "IGO_Members", -1)
         self.assertTrue(ds.rev > 0)
 
         # via `DataSet.__init__` (with sync, historical revision)
-        ds = DataSet("IGO_Members", repo, 1)
+        ds = DataSet(repo, "IGO_Members", 1)
         self.assertEqual(ds.rev, 1)
 
         # via `repo[dsname]` (with sync, latest revision)
