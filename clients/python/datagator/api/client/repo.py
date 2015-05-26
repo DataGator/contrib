@@ -107,16 +107,10 @@ class ChangeSet(object):
 
         try:
             self.__tmp.seek(0, SEEK_SET)
-            if environ.DATAGATOR_API_VERSION == "v1":
-                with validated(Entity.service.put(
-                        self.__uri, data=self.__tmp), (202, )) as r:
-                    # TODO watch task for completion
-                    pass
-            else:
-                with validated(Entity.service.patch(
-                        self.__uri, data=self.__tmp), (202, )) as r:
-                    # TODO watch task for completion
-                    pass
+            with validated(Entity.service.patch(
+                    self.__uri, data=self.__tmp), (202, )) as r:
+                # TODO watch task for completion
+                pass
         except Exception as e:
             _log.error(e)
             raise
@@ -337,8 +331,6 @@ class Repo(Entity):
 
     @property
     def uri(self):
-        if environ.DATAGATOR_API_VERSION == "v1":
-            return self.name
         return "repo/{0}".format(self.name)
 
     @property
@@ -381,17 +373,10 @@ class Repo(Entity):
         except (AssertionError, ):
             raise KeyError("invalid dataset name")
         # create / update dataset
-        if environ.DATAGATOR_API_VERSION == "v1":
-            with validated(Entity.service.put(
-                    self.uri, ref.ref), (202, )) as r:
-                # TODO watch task for completion
-                pass
-        else:
-            with validated(Entity.service.put(
-                    ref.uri, ref.ref), (200, 201)) as r:
-                # since v2, data set creation / update is a synchronized
-                # operation, no task will be created whatsoever
-                pass
+        with validated(Entity.service.put(ref.uri, ref.ref), (200, 201)) as r:
+            # since v2, data set creation / update is a synchronized
+            # operation, no task will be created whatsoever
+            pass
         # commit revision(s) with the new items. `ref.patch()` will also
         # invalidate local cache for both the repo and the referenced dataset.
         ref.patch(items)

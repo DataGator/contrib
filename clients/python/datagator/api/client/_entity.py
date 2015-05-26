@@ -60,6 +60,8 @@ class validated(object):
         :param response: response object from the backend service
         :param exptected: `list` or `tuple` of expected status codes
         """
+        assert(environ.DATAGATOR_API_VERSION == "v2"), \
+            "incompatible backend service version"
         self.__response = response
         self.__expected_status = tuple(verify_status) \
             if isinstance(verify_status, (list, tuple)) else (200, ) \
