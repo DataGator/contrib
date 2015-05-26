@@ -109,7 +109,8 @@ class TestRepoOperations(unittest.TestCase):
         pass  # void return
 
     def test_Repo_GET(self):
-        response = self.service.get(self.repo)
+        uri = "repo/{0}".format(self.repo)
+        response = self.service.get(uri)
         self.assertEqual(response.status_code, 200)
         repo = response.json()
         self.assertEqual(self.validator.validate(repo), None)
@@ -118,7 +119,8 @@ class TestRepoOperations(unittest.TestCase):
         pass  # void return
 
     def test_Repo_GET_NonExistence(self):
-        response = self.service.get("NonExistence")
+        uri = "repo/NonExistence"
+        response = self.service.get(uri)
         self.assertEqual(response.status_code, 404)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -127,7 +129,8 @@ class TestRepoOperations(unittest.TestCase):
         pass  # void return
 
     def test_Repo_POST(self):
-        response = self.service.post(self.repo, "")
+        uri = "repo/{0}".format(self.repo)
+        response = self.service.post(uri, "")
         self.assertEqual(response.status_code, 501)
         msg = response.json()
         _log.debug(msg.get("message"))
@@ -144,7 +147,7 @@ class TestRepoOperations(unittest.TestCase):
 class TestDataSetOperations(unittest.TestCase):
     """
     Endpoint:
-        ``^/<repo>``
+        ``^/repo/<repo>``
     """
 
     @classmethod
@@ -162,7 +165,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_00_PUT_IGO_Members(self):
 
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         IGO_Members = {
             "kind": "datagator#DataSet",
             "name": "IGO_Members",
@@ -172,7 +175,7 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
 
-        response = self.service.put(ID, IGO_Members)
+        response = self.service.put(uri, IGO_Members)
         self.assertTrue(response.status_code in [200, 201])
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -184,7 +187,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_00_PUT_Bakery(self):
 
-        ID = "{0}/{1}".format(self.repo, "Bakery")
+        uri = "repo/{0}/{1}".format(self.repo, "Bakery")
         IGO_Members = {
             "kind": "datagator#DataSet",
             "name": "Bakery",
@@ -194,7 +197,7 @@ class TestDataSetOperations(unittest.TestCase):
             }
         }
 
-        response = self.service.put(ID, IGO_Members)
+        response = self.service.put(uri, IGO_Members)
         self.assertTrue(response.status_code in [200, 201])
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -206,7 +209,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_00_PUT_InvalidName(self):
         # triggers SchemaValidationError within backend service
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         InvalidName = {
             "kind": "datagator#DataSet",
             "name": "IGO Members",
@@ -215,7 +218,7 @@ class TestDataSetOperations(unittest.TestCase):
                 "name": self.repo
             }
         }
-        response = self.service.put(ID, InvalidName)
+        response = self.service.put(uri, InvalidName)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -226,7 +229,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_00_PUT_MissingKind(self):
         # triggers SchemaValidationError within backend service
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         MissingKind = {
             "name": "IGO_Members",
             "repo": {
@@ -234,7 +237,7 @@ class TestDataSetOperations(unittest.TestCase):
                 "name": self.repo
             }
         }
-        response = self.service.put(ID, MissingKind)
+        response = self.service.put(uri, MissingKind)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -245,12 +248,12 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_00_PUT_InvalidKind(self):
         # triggers AssertionError within backend service
-        ID = "{0}/{1}".format(self.repo, "Whatever")
+        uri = "repo/{0}/{1}".format(self.repo, "Whatever")
         InvalidKind = {
             "kind": "datagator#Repo",
             "name": "Whatever"
         }
-        response = self.service.put(ID, InvalidKind)
+        response = self.service.put(uri, InvalidKind)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -261,7 +264,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_00_PUT_InconsistentRepo(self):
         # triggers AssertionError within backend service
-        ID = "{0}/{1}".format(self.repo, "Whatever")
+        uri = "repo/{0}/{1}".format(self.repo, "Whatever")
         InconsistentRepo = {
             "kind": "datagator#DataSet",
             "name": "Whatever",
@@ -270,7 +273,7 @@ class TestDataSetOperations(unittest.TestCase):
                 "name": "NonExistentRepo"
             }
         }
-        response = self.service.put(ID, InconsistentRepo)
+        response = self.service.put(uri, InconsistentRepo)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -281,7 +284,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_01_PATCH_IGO_Members(self):
 
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         revision = {
             "UN": json.loads(to_unicode(
                 load_data(os.path.join("json", "IGO_Members", "UN.json")))),
@@ -293,7 +296,7 @@ class TestDataSetOperations(unittest.TestCase):
                 load_data(os.path.join("json", "IGO_Members", "OPEC.json")))),
         }
 
-        response = self.service.patch(ID, revision)
+        response = self.service.patch(uri, revision)
         self.assertEqual(response.status_code, 202)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -314,13 +317,13 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_01_PATCH_Bakery(self):
 
-        ID = "{0}/{1}".format(self.repo, "Bakery")
+        uri = "repo/{0}/{1}".format(self.repo, "Bakery")
         revision = {
             "US_Membership.recipe": json.loads(to_unicode(load_data(
                 os.path.join("json", "Bakery", "US_Membership.json"))))
         }
 
-        response = self.service.patch(ID, revision)
+        response = self.service.patch(uri, revision)
         self.assertEqual(response.status_code, 202)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -341,9 +344,9 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_01_PATCH_InvalidPayload(self):
         # triggers AssertionError within backend service
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         InvalidPayload = ["array", "as", "payload"]
-        response = self.service.patch(ID, InvalidPayload)
+        response = self.service.patch(uri, InvalidPayload)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -354,7 +357,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_01_PATCH_MissingKind(self):
         # triggers SchemaValidationError within backend service
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         MissingKind = {
             "UN": {
                 "name": "IGO_Members",
@@ -364,7 +367,7 @@ class TestDataSetOperations(unittest.TestCase):
                 }
             }
         }
-        response = self.service.patch(ID, MissingKind)
+        response = self.service.patch(uri, MissingKind)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -375,12 +378,12 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_01_PATCH_InvalidKey(self):
         # triggers AssertionError within backend service
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         InvalidKey = {
             "U#N": json.loads(to_unicode(
                 load_data(os.path.join("json", "IGO_Members", "WTO.json"))))
         }
-        response = self.service.patch(ID, InvalidKey)
+        response = self.service.patch(uri, InvalidKey)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -391,7 +394,7 @@ class TestDataSetOperations(unittest.TestCase):
 
     def test_DataSet_01_PATCH_InvalidKind(self):
         # triggers AssertionError within backend service
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         InvalidKind = {
             "UN": {
                 "kind": "datagator#DataSet",
@@ -402,7 +405,7 @@ class TestDataSetOperations(unittest.TestCase):
                 }
             }
         }
-        response = self.service.patch(ID, InvalidKind)
+        response = self.service.patch(uri, InvalidKind)
         self.assertEqual(response.status_code, 400)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -414,12 +417,12 @@ class TestDataSetOperations(unittest.TestCase):
     def test_DataSet_01_PATCH_RemoveNonExistent(self):
         # NOTE: this does NOT trigger an error on the backend service
 
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
         RemoveNonExistent = {
             "NonExistent": None
         }
 
-        response = self.service.patch(ID, RemoveNonExistent)
+        response = self.service.patch(uri, RemoveNonExistent)
         self.assertEqual(response.status_code, 202)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -438,8 +441,8 @@ class TestDataSetOperations(unittest.TestCase):
         pass  # void return
 
     def test_DataSet_02_GET(self):
-        ID = "{0}/{1}".format(self.repo, "IGO_Members")
-        response = self.service.get(ID)
+        uri = "repo/{0}/{1}".format(self.repo, "IGO_Members")
+        response = self.service.get(uri)
         self.assertEqual(response.status_code, 200)
         ds = response.json()
         self.assertEqual(self.validator.validate(ds), None)
@@ -453,7 +456,8 @@ class TestDataSetOperations(unittest.TestCase):
         pass  # void return
 
     def test_DataSet_02_GET_NonExistence(self):
-        response = self.service.get("Pardee/NonExistence")
+        uri = "repo/Pardee/NonExistence"
+        response = self.service.get(uri)
         self.assertEqual(response.status_code, 404)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -471,7 +475,7 @@ class TestDataSetOperations(unittest.TestCase):
 class TestDataItemOperations(unittest.TestCase):
     """
     Endpoint:
-        ``^/<repo>/<dataset>/<key>``
+        ``^/repo/<repo>/<dataset>/<key>``
     """
 
     @classmethod
@@ -488,11 +492,11 @@ class TestDataItemOperations(unittest.TestCase):
         pass  # void return
 
     def test_DataItem_GET(self):
-        ID = "{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
+        uri = "repo/{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
         UN = json.loads(to_unicode(
             load_data(os.path.join("json", "IGO_Members", "UN.json"))))
         # full GET
-        response = self.service.get(ID)
+        response = self.service.get(uri)
         self.assertEqual(response.status_code, 200)
         item = response.json()
         self.assertEqual(self.validator.validate(item), None)
@@ -501,18 +505,18 @@ class TestDataItemOperations(unittest.TestCase):
             self.assertEqual(item.get(k), UN.get(k))
         # conditional GET
         etag = response.headers.get("ETag")
-        response = self.service.get(ID, {"If-None-Match": etag})
+        response = self.service.get(uri, {"If-None-Match": etag})
         self.assertEqual(response.status_code, 304)
         self.assertTrue("ETag" in response.headers)
         self.assertEqual(response.headers['ETag'], etag)
         pass  # void return
 
     def test_DataItem_POST_MatrixToXlsx(self):
-        ID = "{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
+        uri = "repo/{0}/{1}/{2}".format(self.repo, "IGO_Members", "UN")
         data = {"fmt": "xlsx"}
 
         # submit conversion request
-        response = self.service.post(ID, data=data)
+        response = self.service.post(uri, data=data)
         self.assertTrue(response.status_code in [201, 202])
         self.assertTrue("Location" in response.headers)
         url = response.headers['Location']
@@ -548,7 +552,7 @@ class TestDataItemOperations(unittest.TestCase):
 class TestRecipeOperations(unittest.TestCase):
     """
     Endpoint:
-        ``^/<repo>/<dataset>/<key>.recipe``
+        ``^/repo/<repo>/<dataset>/<key>.recipe``
     """
 
     @classmethod
@@ -565,20 +569,21 @@ class TestRecipeOperations(unittest.TestCase):
         pass  # void return
 
     def test_Recipe_GET(self):
-        ID = "{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership.recipe")
+        uri = "repo/{0}/{1}/{2}".format(
+            self.repo, "Bakery", "US_Membership.recipe")
         AST = json.loads(to_unicode(
             load_data(os.path.join("json", "Bakery", "US_Membership.json"))))
         DGML = to_unicode(
             load_data(os.path.join("raw", "Bakery", "US_Membership.dgml")))
         # GET json
-        response = self.service.get(ID)
+        response = self.service.get(uri)
         self.assertEqual(response.status_code, 200)
         item = response.json()
         self.assertEqual(self.validator.validate(item), None)
         self.assertEqual(item.get("kind"), "datagator#Recipe")
         self.assertEqual(len(item), len(AST))
         # GET dgml
-        response = self.service.get("{0}?fmt=dgml".format(ID))
+        response = self.service.get("{0}?fmt=dgml".format(uri))
         self.assertEqual(response.status_code, 200)
         code = response.text
         for u, v in zip(filter(None, code.split()),
@@ -587,9 +592,10 @@ class TestRecipeOperations(unittest.TestCase):
         pass  # void return
 
     def test_Recipe_POST(self):
-        ID = "{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership.recipe")
+        uri = "repo/{0}/{1}/{2}".format(
+            self.repo, "Bakery", "US_Membership.recipe")
         data = {"act": "bake"}
-        response = self.service.post(ID, data=data)
+        response = self.service.post(uri, data=data)
         self.assertEqual(response.status_code, 202)
         msg = response.json()
         self.assertEqual(self.validator.validate(msg), None)
@@ -605,8 +611,8 @@ class TestRecipeOperations(unittest.TestCase):
         self.assertEqual(task.get("kind"), "datagator#Task")
         self.assertEqual(task.get("status"), "SUC")
         # download the baked matrix
-        ID = "{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership")
-        download = self.service.get(ID)
+        uri = "repo/{0}/{1}/{2}".format(self.repo, "Bakery", "US_Membership")
+        download = self.service.get(uri)
         self.assertEqual(download.status_code, 200)
         self.assertTrue("Content-Type" in download.headers)
         self.assertEqual(download.headers['Content-Type'], "application/json")

@@ -73,3 +73,8 @@ class Matrix(DataItem):
 class Recipe(DataItem):
 
     pass
+
+
+class Opaque(DataItem):
+
+    pass

@@ -188,7 +188,7 @@ class DataSet(Entity):
         self.__writer = None
         self.__items_dict = None
         _log.debug("initializing dataset '{0}'".format(self.uri))
-        # when `rev` is `None`, the dataset may not exist in the backend
+        # when `rev` is `None`, the dataset MAY NOT exist in the backend
         # service (i.e. we are creating a new dataset).
         if rev is None:
             # validate the name locally against the schema
@@ -196,8 +196,8 @@ class DataSet(Entity):
                 Entity.schema.validate(self.ref)
             except jsonschema.ValidationError:
                 raise AssertionError("invalid dataset name")
-        # when `rev` is not `None`, the dataset is assumed to exist in the
-        # backend service (i.e. we are pulling remote data for use).
+        # when `rev` is not `None`, the dataset is SHOULD exist in the backend
+        # service (i.e. we are pulling remote data for use).
         else:
             # when `rev` is -1, we always invalidate the cached dataset, and
             # pull the remote revision from the backend service.
@@ -207,13 +207,13 @@ class DataSet(Entity):
             assert(rev == remote_rev or rev == -1), \
                 "inconsistent revision '{0}' != '{1}'".format(remote_rev, rev)
             # when invoking `self.cache`, `self.rev` is already synchronized,
-            # i.e., `self.rev` is always equal to `remote_rev` at this point.
+            # i.e., `self.rev` is always equal to `remote_rev` to this point.
         pass
 
     @property
     def uri(self):
         return "{0}/{1}{2}".format(
-            self.repo.name, self.name,
+            self.repo.uri, self.name,
             ".{0}".format(self.rev) if self.rev is not None else "")
 
     @property
@@ -337,7 +337,9 @@ class Repo(Entity):
 
     @property
     def uri(self):
-        return self.name
+        if environ.DATAGATOR_API_VERSION == "v1":
+            return self.name
+        return "repo/{0}".format(self.name)
 
     @property
     def name(self):

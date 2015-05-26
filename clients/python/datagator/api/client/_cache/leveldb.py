@@ -23,7 +23,7 @@ from .._compat import to_native, to_bytes
 from . import CacheManager
 
 # this has to be absolute import, otherwise we will be self-importing.
-_leveldb = __import__("leveldb")
+_leveldb = __import__("leveldb", level=0)
 
 
 __all__ = ['LevelDbCache', ]
