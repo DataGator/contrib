@@ -53,13 +53,14 @@ The public documentation of ``DataGator`` (aka. ``docs``) collects specification
    :alt: Test Coverage Status
 
 
-The public test suite of ``DataGator`` (aka. ``tests``) is designed for (i) validation of ``DataGator``'s backend services through the RESTful API, and (ii) coverage test of ``DataGator``'s HTTP client libraries.
+The public test suite of ``DataGator`` (aka. ``tests``) is designed for (i) regression test of ``DataGator``'s backend services through the RESTful API, and (ii) coverage test of ``DataGator``'s HTTP client libraries.
 
 Basic usage is simply,
 
 .. code-block:: bash
 
     $ python -m tests -v
+
 
 Optional settings can be passed via the following environment variables,
 

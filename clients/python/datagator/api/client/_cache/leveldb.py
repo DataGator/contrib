@@ -18,12 +18,15 @@ import logging
 import shutil
 import tempfile
 
-from .._compat import to_native, to_bytes
-
-from . import CacheManager
+from datagator.api.client._cache import CacheManager
+from datagator.api.client._compat import to_bytes, to_native
 
 # this has to be absolute import, otherwise we will be self-importing.
-_leveldb = __import__("leveldb", level=0)
+try:
+    _leveldb = __import__("leveldb", level=0)
+except ImportError:
+    raise ImportError("""Could not load `leveldb` dependency.
+        See http://code.google.com/p/leveldb/""")
 
 
 __all__ = ['LevelDbCache', ]
@@ -34,6 +37,7 @@ _log = logging.getLogger(__name__)
 
 
 class LevelDbCache(CacheManager):
+
     """
     LevelDB backend for disk-persisted cache management
     """
