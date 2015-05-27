@@ -44,11 +44,11 @@ The public documentation of ``DataGator`` (aka. ``docs``) collects specification
 ``tests``
 ~~~~~~~~~
 
-.. image:: https://travis-ci.org/liuyu81/datagator-contrib.svg?branch=master
+.. image:: https://travis-ci.org/liuyu81/datagator-contrib.svg?branch=develop
    :target: https://travis-ci.org/liuyu81/datagator-contrib
    :alt: Travis CI Build Status
 
-.. image:: https://coveralls.io/repos/liuyu81/datagator-contrib/badge.svg
+.. image:: https://coveralls.io/repos/liuyu81/datagator-contrib/badge.svg?branch=develop
    :target: https://coveralls.io/r/liuyu81/datagator-contrib
    :alt: Test Coverage Status
 
@@ -63,13 +63,16 @@ Basic usage is simply,
 
 Optional settings can be passed via the following environment variables,
 
-+---------------------------+--------------------------------------------------+
-| **Variable**              | **Description**                                  |
-+---------------------------+--------------------------------------------------+
-| ``DATAGATOR_API_HOST``    | name or IP address of ``DataGator``'s backend    |
-|                           | portal, defaults to ``www.data-gator.com``       |
-+---------------------------+--------------------------------------------------+
-| ``DATAGATOR_CREDENTIALS`` | access key in the form of ``<repo>:<secret>``    |
-+---------------------------+--------------------------------------------------+
-| ``DEBUG``                 | ``DEBUG=1`` turns on debugging mode              |
-+---------------------------+--------------------------------------------------+
++-----------------------------+------------------------------------------------------+
+| **Variable**                | **Description**                                      |
++-----------------------------+------------------------------------------------------+
+| ``DATAGATOR_API_HOST``      | domain name or IP address of ``DataGator``'s backend |
+|                             | portal, defaults to ``www.data-gator.com``           |
++-----------------------------+------------------------------------------------------+
+| ``DATAGATOR_CACHE_BACKEND`` | implementation of cache manager backend, defaults to |
+|                             | ``datagator.api.client._cache.leveldb.LevelDBCache`` |
++-----------------------------+------------------------------------------------------+
+| ``DATAGATOR_CREDENTIALS``   | access key in the form of ``<repo>:<secret>``        |
++-----------------------------+------------------------------------------------------+
+| ``DEBUG``                   | ``DEBUG=1`` turns on debugging mode                  |
++-----------------------------+------------------------------------------------------+
