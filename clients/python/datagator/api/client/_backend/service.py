@@ -91,8 +91,7 @@ class DataGatorService(object):
         self.http.headers.update({
             "User-Agent": environ.DATAGATOR_API_USER_AGENT,
             "Accept": "application/json, */*",
-            "Accept-Encoding": environ.DATAGATOR_API_ACCEPT_ENCODING,
-            "Content-Type": "application/json"})
+            "Accept-Encoding": environ.DATAGATOR_API_ACCEPT_ENCODING})
 
         super(DataGatorService, self).__init__()
         pass
@@ -165,6 +164,7 @@ class DataGatorService(object):
         :param headers: extra HTTP headers to be sent with request.
         :returns: HTTP response object.
         """
+        headers.setdefault('Content-Type', "application/json")
         r = self.http.request(
             method="PATCH",
             url=safe_url(path),
@@ -183,9 +183,10 @@ class DataGatorService(object):
         """
 
         if files:
-            headers.setdefault({'Content-Type': "multipart/form-data"})
+            headers.setdefault('Content-Type', "multipart/form-data")
         else:
             data = make_payload(data)
+            headers.setdefault('Content-Type', "application/json")
 
         r = self.http.request(
             method="POST",
@@ -203,6 +204,7 @@ class DataGatorService(object):
         :param headers: extra HTTP headers to be sent with request.
         :returns: HTTP response object.
         """
+        headers.setdefault('Content-Type', "application/json")
         r = self.http.request(
             method="PUT",
             url=safe_url(path),
