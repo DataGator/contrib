@@ -172,6 +172,38 @@ class ChangeSet(object):
 
 class DataSet(Entity):
 
+    @staticmethod
+    def get(ref):
+        try:
+            Entity.schema.validate(ref)
+            assert(ref['kind'] == "datagator#DataSet")
+        except (jsonschema.ValidationError, AssertionError):
+            raise ValueError("invalid dataset reference")
+        #
+        repo = Repo.get(ref['repo'])
+        name = None
+        rev = ref['rev'] if "rev" in ref else None
+        if "id" in ref:
+            # resolve dataset name by id
+            uri = "{0}/{1}{2}".format(
+                repo.uri,
+                ref['id'],
+                ".{0}".format(rev) if rev is not None else "")
+            try:
+                with validated(Entity.service.get(uri)) as r:
+                    data = r.json()
+                    Entity.schema.validate(data)
+                    assert(data['kind'] == "datagator#DataSet")
+                    name = data['name']
+            except (jsonschema.ValidationError, AssertionError):
+                raise ValueError("cannot resolve dataset name")
+        elif "name" in ref:
+            # use specified name as-is
+            name = ref['name']
+        else:
+            raise ValueError("cannot resolve dataset name")
+        return DataSet(repo, name, rev or -1)
+
     __slots__ = ['__name', '__repo', '__rev', '__writer', '__items_dict', ]
 
     def __init__(self, repo, name, rev=None):
@@ -317,6 +349,21 @@ class DataSet(Entity):
 
 
 class Repo(Entity):
+
+    @staticmethod
+    def get(ref):
+        try:
+            # RepoRef is not a top-level entity, it cannot be validated by
+            # `Entity.schema` so we need to assemble a local schema
+            sch = Entity.schema.schema['definitions']['RepoRef'].copy()
+            sch['definitions'] = {
+                'name': Entity.schema.schema['definitions']['name']
+            }
+            jsonschema.validate(ref, sch)
+            assert(ref['kind'] == "datagator#Repo")
+        except (jsonschema.ValidationError, AssertionError):
+            raise ValueError("invalid repo reference")
+        return Repo(ref['name'])
 
     __slots__ = ['__name', ]
 
