@@ -25,7 +25,8 @@ import tempfile
 from . import environ
 from ._backend import DataGatorService
 from ._cache import CacheManager
-from ._compat import with_metaclass, to_bytes, to_native, to_unicode
+from ._compat import OrderedDict, with_metaclass
+from ._compat import to_bytes, to_native, to_unicode
 
 
 __all__ = ['Entity', 'validated', 'normalized', ]
@@ -222,6 +223,13 @@ class Entity(with_metaclass(EntityType, object)):
     """
     Abstract base class of all client-side entities
     """
+
+    class Ref(OrderedDict):
+
+        def __hash__(self):
+            return json.dumps(self).__hash__()
+
+        pass
 
     @classmethod
     def cleanup(cls):

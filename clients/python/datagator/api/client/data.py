@@ -22,6 +22,17 @@ __all__ = [to_native(n) for n in __all__]
 
 class DataItem(Entity):
 
+    @staticmethod
+    def get(ref):
+        try:
+            ds = DataSet.get(ref)
+            assert("items" in ref or len(ref['items']) == 1)
+            name = ref['items'][0]['name']
+        except (jsonschema.ValidationError, AssertionError):
+            raise ValueError("invalid data item reference")
+        else:
+            return ds[name]
+
     __slots__ = ['__dataset', '__key', ]
 
     def __new__(cls, kind, dataset, key):
@@ -47,7 +58,7 @@ class DataItem(Entity):
         # NOTE: the JSON-based reference of a `DataItem` reuses the schema of
         # `DataSet`, but `items` and `itemsCount` fields are always present.
         obj = self.dataset.ref
-        obj['items'] = tuple([OrderedDict([
+        obj['items'] = tuple([Entity.Ref([
             ("kind", "datagator#{0}".format(self.kind)),
             ("name", self.key),
         ]), ])

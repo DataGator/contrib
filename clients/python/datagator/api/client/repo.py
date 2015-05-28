@@ -20,7 +20,7 @@ import logging
 import tempfile
 
 from . import environ
-from ._compat import OrderedDict, to_native, to_unicode, to_bytes, _thread
+from ._compat import to_native, to_unicode, to_bytes, _thread
 from ._entity import Entity, validated
 
 from .data import DataItem
@@ -177,32 +177,34 @@ class DataSet(Entity):
         try:
             Entity.schema.validate(ref)
             assert(ref['kind'] == "datagator#DataSet")
+            #
+            repo = Repo.get(ref['repo'])
+            name = None
+            rev = ref['rev'] if "rev" in ref else None
+            if "id" in ref:
+                # resolve dataset name by id
+                uri = "{0}/{1}{2}".format(
+                    repo.uri,
+                    ref['id'],
+                    ".{0}".format(rev) if rev is not None else "")
+                try:
+                    with validated(Entity.service.get(uri)) as r:
+                        data = r.json()
+                        Entity.schema.validate(data)
+                        assert(data['kind'] == "datagator#DataSet")
+                        name = data['name']
+                except (jsonschema.ValidationError, AssertionError):
+                    raise ValueError("cannot resolve dataset name")
+            elif "name" in ref:
+                # use specified name as-is
+                name = ref['name']
+            else:
+                raise ValueError("cannot resolve dataset name")
         except (jsonschema.ValidationError, AssertionError):
             raise ValueError("invalid dataset reference")
-        #
-        repo = Repo.get(ref['repo'])
-        name = None
-        rev = ref['rev'] if "rev" in ref else None
-        if "id" in ref:
-            # resolve dataset name by id
-            uri = "{0}/{1}{2}".format(
-                repo.uri,
-                ref['id'],
-                ".{0}".format(rev) if rev is not None else "")
-            try:
-                with validated(Entity.service.get(uri)) as r:
-                    data = r.json()
-                    Entity.schema.validate(data)
-                    assert(data['kind'] == "datagator#DataSet")
-                    name = data['name']
-            except (jsonschema.ValidationError, AssertionError):
-                raise ValueError("cannot resolve dataset name")
-        elif "name" in ref:
-            # use specified name as-is
-            name = ref['name']
         else:
-            raise ValueError("cannot resolve dataset name")
-        return DataSet(repo, name, rev or -1)
+            return DataSet(repo, name, rev or -1)
+        pass
 
     __slots__ = ['__name', '__repo', '__rev', '__writer', '__items_dict', ]
 
@@ -244,7 +246,7 @@ class DataSet(Entity):
 
     @property
     def ref(self):
-        obj = OrderedDict([
+        obj = Entity.Ref([
             ("kind", "datagator#DataSet"),
             ("name", self.name),
             ("repo", self.repo.ref),
@@ -361,9 +363,12 @@ class Repo(Entity):
             }
             jsonschema.validate(ref, sch)
             assert(ref['kind'] == "datagator#Repo")
+            name = ref['name']
         except (jsonschema.ValidationError, AssertionError):
             raise ValueError("invalid repo reference")
-        return Repo(ref['name'])
+        else:
+            return Repo(name)
+        pass
 
     __slots__ = ['__name', ]
 
@@ -386,7 +391,7 @@ class Repo(Entity):
 
     @property
     def ref(self):
-        return OrderedDict([
+        return Entity.Ref([
             ("kind", "datagator#Repo"),
             ("name", self.name),
         ])
