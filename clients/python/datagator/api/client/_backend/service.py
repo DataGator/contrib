@@ -17,15 +17,34 @@ import json
 import logging
 import os
 import requests
+import ssl
 
 from .. import environ
 from .._compat import to_bytes, to_native
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+
 
 __all__ = ['DataGatorService', ]
 __all__ = [to_native(n) for n in __all__]
 
 
 _log = logging.getLogger(__package__)
+
+
+class TLSv1Adapter(HTTPAdapter):
+    """
+    Force `requests` session to use TLSv1 for https connections
+    """
+    def init_poolmanager(self, connections, maxsize, block):
+        self.poolmanager = PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            ssl_version=ssl.PROTOCOL_TLSv1)
+        pass
+    pass
 
 
 def safe_url(path):
@@ -73,6 +92,10 @@ class DataGatorService(object):
         """
 
         self.__http = requests.Session()
+
+        # force TLSv1, this resolves SSL error (EOF occurred in violation of
+        # protocol), see http://stackoverflow.com/questions/14102416/
+        self.__http.mount('https://', TLSv1Adapter())
 
         self.auth = auth
 

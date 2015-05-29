@@ -32,6 +32,7 @@ class DataItem(Entity):
             raise ValueError("invalid data item reference")
         else:
             return ds[name]
+        pass
 
     __slots__ = ['__dataset', '__key', ]
 
