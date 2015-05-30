@@ -45,7 +45,7 @@ _log = logging.getLogger("datagator.{0}".format(__name__))
 def monitor_task(service, url, retry=180):
     task = None
     while retry > 0:
-        task = service.http.get(url).json()
+        task = service.get(url).json()
         assert(task.get("kind") == "datagator#Task")
         if task.get("status") in ("SUC", "ERR"):
             break
