@@ -36,7 +36,8 @@ __all__ = ['TestBackendStatus',
            'TestDataSetOperations',
            'TestDataItemOperations',
            'TestRecipeOperations',
-           'TestSearchOperations', ]
+           'TestSearchOperations',
+           'TestRateLimit', ]
 __all__ = [to_native(n) for n in __all__]
 
 
@@ -640,6 +641,48 @@ class TestSearchOperations(unittest.TestCase):
     def tearDownClass(cls):
         del cls.service
         pass  # void return
+
+    pass
+
+
+@unittest.skipIf(
+    not os.environ.get('DATAGATOR_CREDENTIALS', None) and
+    os.environ.get('TRAVIS', False),
+    "credentials required for unsupervised testing")
+class TestRateLimit(unittest.TestCase):
+    """
+    Test rate limiting headers
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        environ.DATAGATOR_API_VERSION = "v2"
+        cls.repo, cls.secret = get_credentials()
+        cls.service = DataGatorService(auth=(cls.repo, cls.secret))
+        cls.validator = jsonschema.Draft4Validator(cls.service.schema)
+        pass  # void return
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.service
+        pass  # void return
+
+    def test_ratelimit_headers(self):
+
+        r = self.service.get("/")
+        self.assertTrue("X-RateLimit-Limit" in r.headers)
+        self.assertTrue("X-RateLimit-Remaining" in r.headers)
+        self.assertTrue("X-RateLimit-Reset" in r.headers)
+
+        total = int(r.headers["X-RateLimit-Limit"])
+        remain = int(r.headers["X-RateLimit-Remaining"])
+        reset = int(r.headers["X-RateLimit-Reset"])
+
+        self.assertEqual(total, 2000)
+        self.assertTrue(0 <= remain < total)
+        self.assertTrue(0 <= reset - time.time() < 3600)
+
+        pass
 
     pass
 

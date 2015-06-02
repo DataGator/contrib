@@ -79,7 +79,7 @@ class DataGatorService(object):
     HTTP client for DataGator's backend services.
     """
 
-    __slots__ = ['__http', '__auth', ]
+    __slots__ = ['__http', ]
 
     def __init__(self, auth=None, verify=not environ.DEBUG):
         """
@@ -95,7 +95,7 @@ class DataGatorService(object):
 
         # force TLSv1, this resolves SSL error (EOF occurred in violation of
         # protocol), see http://stackoverflow.com/questions/14102416/
-        self.__http.mount('https://', TLSv1Adapter())
+        self.http.mount('https://', TLSv1Adapter())
 
         self.auth = auth
 
@@ -121,15 +121,15 @@ class DataGatorService(object):
 
     @property
     def auth(self):
-        return self.__auth
+        return self.http.auth
 
     @auth.setter
     def auth(self, auth):
         if auth:
             _log.info("enabled HTTP authentication")
-            self.__auth = auth
+            self.http.auth = auth
         else:
-            self.__auth = None
+            self.http.auth = None
         pass
 
     @property
@@ -192,7 +192,6 @@ class DataGatorService(object):
             method="PATCH",
             url=safe_url(path),
             data=make_payload(data),
-            auth=self.__auth,
             headers=headers)
         return r
 
@@ -216,7 +215,6 @@ class DataGatorService(object):
             url=safe_url(path),
             data=data,
             files=files,
-            auth=self.__auth,
             headers=headers)
         return r
 
@@ -232,7 +230,6 @@ class DataGatorService(object):
             method="PUT",
             url=safe_url(path),
             data=make_payload(data),
-            auth=self.__auth,
             headers=headers)
         return r
 
