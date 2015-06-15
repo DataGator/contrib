@@ -1,0 +1,111 @@
+{% load staticfiles %}<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="DataGator Project" />
+
+<title>DataGator - {% block title %}{% endblock %}</title>
+
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css" />
+
+{% block extra_css %}{% endblock %}
+
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+<script src="//oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+<script src="//oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+
+<style>{% block custom_css %}{% endblock %}</style>
+
+</head>
+
+<body>
+
+{% block html_body %}
+  {% block preamble %}
+    <div id="message-box" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="message-box" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header alert message-box">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">
+              <span class="glyphicon glyphicon-bell">&nbsp;</span><span id="message-box-title"><!-- message-box title --></span>
+            </h4>
+          </div>
+          <div class="modal-body">
+            <div id="message-box-body">
+              <!-- message-box body -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endblock %}
+{% endblock %}
+
+<script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+{% block extra_js %}{% endblock %}
+
+<script type="text/javascript">
+
+var DATAGATOR_API_URL = "{{ api_url }}";
+var DATAGATOR_ENTITY_REF = {{ entity_ref | safe }};
+
+function show_message(status, title, msg, popup) {
+    $('#message-box-title').text(title);
+    $('#message-box-body').html(msg);
+    $('.message-box').removeClass('alert-primary alert-success alert-info alert-warning alert-danger');
+    $('.message-box').addClass('alert-' + status);
+    if (popup || popup === void 0) {
+        $('#message-box').modal('show');
+    }
+}
+
+function hide_message() {
+    $('#message-box').modal('hide');
+}
+
+{% block custom_js %}{% endblock %}
+
+function render_workflow(data) {
+    /* TODO */
+}
+
+$(document).ready(function () {
+
+    $.getJSON(DATAGATOR_API_URL)
+    .done(function (data) {
+        render_workflow(data);
+        hide_message();
+    })
+    .fail(function(jqxhr, textStatus, error) {
+        var data = JSON.parse(jqxhr.responseText);
+        if (data) {
+            if (data['code'] == 404) {
+                /* create a new non-existent workflow */
+                render_workflow({});
+            } else {
+                show_message('danger', "Errored", data['message']);
+            }
+        } else {
+            show_message('danger', "Errored", textStatus);
+        }
+    });
+});
+
+</script>
+
+</body>
+
+</html>
