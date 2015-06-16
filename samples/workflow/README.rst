@@ -1,11 +1,13 @@
 Sample Project for Workflow Builder
 -----------------------------------
 
-django project framework for the `recipe builder` challenge.
+django project framework for the `workflow builder` challenge.
 
 
 Contents
 ~~~~~~~~
+
+Custom design for the `workflow builder` should be placed in ``templates/workflow.html``. The template already contains sample code for loading recipe through AJAX (AJAJ) call to the RESTful API.
 
 .. code-block::
 
@@ -36,4 +38,4 @@ More information on django project management can be found at `<https://docs.dja
 Open the stub WorkFlowView
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Open a web browser and visit `<hhttp://127.0.0.1:8000/Pardee/Workflow_Sample/IGO_Weighted_Membership.recipe>`_.
+Open a web browser and visit `<http://127.0.0.1:8000/Pardee/Workflow_Sample/IGO_Weighted_Membership.recipe>`_.
