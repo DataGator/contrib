@@ -17,17 +17,14 @@ from django.shortcuts import render
 from django.views.generic.base import View
 
 
-class DataItemView(View):
+class WorkFlowView(View):
 
     kind = None
-
-    def __init__(self, *args, **kwargs):
-        super(DataItemView, self).__init__(*args, **kwargs)
 
     def get(self, request, repo, dataset, rev, key):
 
         cookbook = {
-            'api_url': "/api/v1/",
+            'api_url': "https://www.data-gator.com/api/v1/",
             'entity_ref': json.dumps({
                 'repo': {
                     'kind': "datagator#Repo",

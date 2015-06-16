@@ -15,23 +15,21 @@ from django.conf.urls import include, url
 
 from django.views.generic.base import RedirectView
 
-from .views import DataItemView
+from .views import WorkFlowView
 
 
 VAR_REGEX = r"[A-Za-z_]\w{0,29}"
 
 KEY_REGEX = r"""(?:[^"/?#@\\\s]|\\["'\\]){1,128}"""
 
-
 data_patterns = [
     # ^/<repo>/<dataset>(|.<rev>)/<item>.recipe
     url(r'^/(?P<key>{0}(?=\.recipe)\.recipe)(?:/|)$'.format(KEY_REGEX),
-        DataItemView.as_view()),
+        WorkFlowView.as_view()),
     # ^/<repo>/<dataset>(|.<rev>)/<item>
     url(r'^/(?P<key>{0})(?:/|)$'.format(KEY_REGEX),
-        DataItemView.as_view()),
+        WorkFlowView.as_view()),
 ]
-
 
 repo_patterns = [
     # ^<repo>/...
@@ -41,7 +39,6 @@ repo_patterns = [
             include(data_patterns)),
     ]))
 ]
-
 
 urlpatterns = [
     url(r'^api/(?P<api_version>v1|v2)/(?P<path_info>.*)', RedirectView.as_view(
