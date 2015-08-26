@@ -1,0 +1,6 @@
+{% extends "_datagator.html" %}
+
+{% block inline_js %}
+var DATAGATOR_API_URL = "{{ api_url }}";
+var DATAGATOR_ENTITY_REF = {{ entity_ref | safe }};
+{% endblock %}

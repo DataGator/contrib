@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="DataGator Project" />
+
+<title>DataGator - {% block title %}{% endblock %}</title>
+{% block extra_css %}{% endblock %}
+<style>{% block inline_css %}{% endblock %}</style>
+
+</head>
+
+<body>{% block html_body %}{% endblock %}
+
+<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+{% block extra_js %}{% endblock %}
+<script type="text/javascript">{% block inline_js %}{% endblock %}</script>
+
+</body>
+
+</html>
