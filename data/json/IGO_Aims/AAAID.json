@@ -1,0 +1,1 @@
+{"kind": "datagator#Matrix", "columnHeaders": 1, "rowHeaders": 4, "rows": [[null, "country", "state", "year", "score"], [437.0, "C\u00f4te d'Ivoire", "ivorycoast", 1960.0, -1.0], [437.0, "Côte d'Ivoire", "ivorycoast", 1965.0, -1.0]], "rowsCount": 3, "columnsCount": 5}

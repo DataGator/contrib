@@ -9,6 +9,6 @@ for IGO in D:
     index M by "Country"
     if "United States" not in M:
         continue
-    yield IGO, M["United States"]
+    yield IGO, M["United States"].body
 
 layout 1, 1

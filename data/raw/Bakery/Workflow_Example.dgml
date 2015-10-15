@@ -1,0 +1,26 @@
+# IGO Membership of United States
+load .NodeA() as D
+load TestYX.IGO_Members.1["UN"] as U
+
+yield "IGO", Range(1816, 2014)
+
+for IGO in D:
+    M = D[IGO]
+    index M by "Country"
+    if "United States" not in M:
+        continue
+    yield IGO, M["United States"]
+
+layout 1, 1
+
+node NodeA():
+    load .NodeB() as B
+    load TestYX.IGO_Members as D
+    # comment
+    for row in D.rows:
+        yield row
+    layout 1, 1
+
+node NodeB():
+    load .NodeA() as A
+    layout 1, 1

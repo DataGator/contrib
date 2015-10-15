@@ -41,10 +41,16 @@ public class FileExtractor implements Extractor {
 
     static {
         try {
+            // CSV | TXT
             final Constructor<? extends InputStreamExtractor> _csv
                     = CsvInputStreamExtractor.class.getConstructor(
                             InputStream.class);
             factory.put("csv", _csv);
+            // XLSX | XLS
+            final Constructor<? extends InputStreamExtractor> _xlsx
+                    = XlsxInputStreamExtractor.class.getConstructor(
+                            InputStream.class);
+            factory.put("xlsx", _xlsx);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
