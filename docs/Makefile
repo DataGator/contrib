@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-PDFTARGETS    = model.pdf api.pdf
+PDFTARGETS    = model.pdf api.pdf api2.pdf
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
@@ -39,7 +39,7 @@ pdf:
 	rst2odt.py $(<) > $(@)
 
 %.tex: %.rst
-	rst2latex.py $(<) > $(@)
+	rst2latex.py --literal-block-env=lstlisting $(<) > $(@)
 
 %.pdf: %.tex
 	pdflatex $(<)
